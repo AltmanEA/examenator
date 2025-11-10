@@ -1,0 +1,106 @@
+{
+  "name": "examenator",
+  "displayName": "Examenator",
+  "description": "Расширение для управления заданиями и тестами",
+  "version": "0.0.1",
+  "engines": {
+    "vscode": "^1.105.0"
+  },
+  "categories": [
+    "Other"
+  ],
+  "activationEvents": [
+    "onStartupFinished"
+  ],
+  "main": "./out/extension.js",
+  "contributes": {
+    "commands": [
+      {
+        "command": "examView.createConfig",
+        "title": "Создать конфигурацию"
+      },
+      {
+        "command": "examView.addBlock",
+        "title": "Добавить блок"
+      },
+      {
+        "command": "examView.addTask",
+        "title": "Добавить задачу"
+      },
+      {
+        "command": "examView.addTest",
+        "title": "Добавить тест"
+      },
+      {
+        "command": "examView.runTest",
+        "title": "Запустить тест"
+      },
+      {
+        "command": "examView.openTest",
+        "title": "Открыть тестовый файл"
+      },
+      {
+        "command": "examView.openTaskAndTest",
+        "title": "Открыть задачу и тест"
+      }
+    ],
+    "menus": {
+      "view/title": [
+        {
+          "command": "examView.addBlock",
+          "when": "view == tasksView",
+          "group": "navigation"
+        },
+        {
+          "command": "examView.addTest",
+          "when": "view == testsView",
+          "group": "navigation"
+        }
+      ]
+    },
+    "viewsContainers": {
+      "activitybar": [
+        {
+          "id": "exam-container",
+          "title": "Экзаменатор",
+          "icon": "$(checklist)"
+        }
+      ]
+    },
+    "views": {
+      "exam-container": [
+        {
+          "id": "tasksView",
+          "name": "Задачи"
+        },
+        {
+          "id": "testsView",
+          "name": "Тесты"
+        },
+        {
+          "id": "activeTestView",
+          "name": "Активный тест"
+        }
+      ]
+    }
+  },
+  "scripts": {
+    "vscode:prepublish": "npm run compile",
+    "compile": "tsc -p ./",
+    "watch": "tsc -watch -p ./",
+    "pretest": "npm run compile && npm run lint",
+    "lint": "eslint src",
+    "test": "vscode-test"
+  },
+  "devDependencies": {
+    "@types/vscode": "^1.105.0",
+    "@types/mocha": "^10.0.10",
+    "@types/node": "22.x",
+    "@typescript-eslint/eslint-plugin": "^8.45.0",
+    "@typescript-eslint/parser": "^8.45.0",
+    "eslint": "^9.36.0",
+    "typescript": "^5.9.3",
+    "@vscode/test-cli": "^0.0.11",
+    "@vscode/test-electron": "^2.5.2"
+  }
+}
