@@ -52,7 +52,7 @@ class TestTreeItem extends vscode.TreeItem {
 }
 
 export function addTestCommand(testsProvider: TestsProvider) {
-    return vscode.commands.registerCommand('examView.addTest', async (blockItem: any) => {
+    return vscode.commands.registerCommand('examView.addTest', async () => {
         const time = await vscode.window.showInputBox({
             prompt: 'Введите время на тест (в секундах)',
             validateInput: (value) => {

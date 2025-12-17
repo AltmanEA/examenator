@@ -17,12 +17,22 @@ export class ActiveTestProvider implements vscode.TreeDataProvider<vscode.TreeIt
     private timer: NodeJS.Timeout | null = null;
     private timeLeft: number = 0;
     private totalTime: number = 0;
-    private isBlinking: boolean = false;
+    private statusBarItem: vscode.StatusBarItem;
+    private warningTime: number = 0;
+    private alertTime: number = 0;
+
+    constructor() {
+        this.statusBarItem = vscode.window.createStatusBarItem(vscode.StatusBarAlignment.Right, 100);
+    }
 
     setActiveTest(tasks: SelectedTask[], testTime: number): void {
         this.tasks = tasks;
         this.totalTime = testTime;
         this.timeLeft = testTime;
+        this.warningTime = Math.floor(testTime * 0.3); // 30% от времени
+        this.alertTime = Math.floor(testTime * 0.1);   // 10% от времени
+
+        this.statusBarItem.show();
         this.startTimer();
         this._onDidChangeTreeData.fire(undefined);
     }
@@ -30,17 +40,21 @@ export class ActiveTestProvider implements vscode.TreeDataProvider<vscode.TreeIt
     clearActiveTest(): void {
         this.tasks = [];
         this.stopTimer();
+        this.statusBarItem.hide();
         this._onDidChangeTreeData.fire(undefined);
     }
 
     private startTimer(): void {
         this.stopTimer();
+        this.updateStatusBar();
+
         this.timer = setInterval(() => {
             this.timeLeft--;
-            this._onDidChangeTreeData.fire(undefined);
-            
+            this.updateStatusBar();
+
             if (this.timeLeft <= 0) {
                 this.stopTimer();
+                vscode.window.showWarningMessage('Время вышло!');
             }
         }, 1000);
     }
@@ -52,58 +66,50 @@ export class ActiveTestProvider implements vscode.TreeDataProvider<vscode.TreeIt
         }
     }
 
+    private updateStatusBar(): void {
+        const minutes = Math.floor(this.timeLeft / 60);
+        const seconds = this.timeLeft % 60;
+        const timeString = `${minutes}:${seconds.toString().padStart(2, '0')}`;
+
+        if (this.timeLeft <= 0) {
+            this.statusBarItem.text = `$(error) Время вышло!`;
+            this.statusBarItem.color = new vscode.ThemeColor('errorForeground');
+            this.statusBarItem.backgroundColor = new vscode.ThemeColor('statusBarItem.errorBackground');
+        } else if (this.timeLeft <= this.alertTime) {
+            this.statusBarItem.text = `$(warning) ${timeString}`;
+            this.statusBarItem.color = new vscode.ThemeColor('errorForeground');
+            this.statusBarItem.backgroundColor = new vscode.ThemeColor('statusBarItem.errorBackground');
+        } else if (this.timeLeft <= this.warningTime) {
+            this.statusBarItem.text = `$(watch) ${timeString}`;
+            this.statusBarItem.color = new vscode.ThemeColor('warningForeground');
+            this.statusBarItem.backgroundColor = new vscode.ThemeColor('statusBarItem.warningBackground');
+        } else {
+            this.statusBarItem.text = `$(watch) ${timeString}`;
+            this.statusBarItem.color = new vscode.ThemeColor('terminal.ansiGreen');
+            this.statusBarItem.backgroundColor = undefined;
+        }
+    }
+
     getTreeItem(element: vscode.TreeItem): vscode.TreeItem {
         return element;
     }
 
     getChildren(): vscode.TreeItem[] {
-        const items: vscode.TreeItem[] = [];
-        
-        // Добавляем таймер как первый элемент
-        const timerItem = new vscode.TreeItem(this.getTimerText(), vscode.TreeItemCollapsibleState.None);
-        timerItem.id = 'timer';
-        timerItem.iconPath = this.getTimerIcon();
-        items.push(timerItem);
-        
-        // Добавляем задачи
-        items.push(...this.tasks.map(task => 
+        // Возвращаем только задачи, без таймера в TreeView
+        return this.tasks.map(task =>
             new TaskTreeItem(
-                task.name, 
-                task.block, 
+                task.name,
+                task.block,
                 task.task,
                 task.template,
                 task.testTemplate
             )
-        ));
-        
-        return items;
+        );
     }
 
-    private getTimerText(): string {
-        if (this.timeLeft <= 0) {
-            return 'Время вышло!';
-        }
-        
-        const minutes = Math.floor(this.timeLeft / 60);
-        const seconds = this.timeLeft % 60;
-        return `Осталось: ${minutes}:${seconds.toString().padStart(2, '0')}`;
-    }
-
-    private getTimerIcon(): vscode.ThemeIcon {
-        if (this.timeLeft <= 0) {
-            return new vscode.ThemeIcon('error', new vscode.ThemeColor('errorForeground'));
-        }
-        
-        const timePercent = (this.timeLeft / this.totalTime) * 100;
-        if (timePercent <= 10) {
-            // Мигающий желтый
-            this.isBlinking = !this.isBlinking;
-            return new vscode.ThemeIcon(this.isBlinking ? 'watch' : 'warning', 
-                                      new vscode.ThemeColor('warningForeground'));
-        }
-        
-        // Зеленый
-        return new vscode.ThemeIcon('watch', new vscode.ThemeColor('terminal.ansiGreen'));
+    dispose() {
+        this.stopTimer();
+        this.statusBarItem.dispose();
     }
 }
 
@@ -119,7 +125,7 @@ class TaskTreeItem extends vscode.TreeItem {
         this.tooltip = `Блок: ${block}, Задача: ${taskNum}`;
         this.iconPath = new vscode.ThemeIcon('file');
         this.contextValue = 'task';
-        
+
         this.command = {
             command: 'examView.openTaskAndTest',
             title: 'Открыть задачу и тест',
@@ -127,10 +133,11 @@ class TaskTreeItem extends vscode.TreeItem {
         };
     }
 }
+
 export function openTaskAndTestCommand() {
     return vscode.commands.registerCommand('examView.openTaskAndTest', async (taskItem: TaskTreeItem) => {
         const workspaceFolder = vscode.workspace.workspaceFolders?.[0];
-        if (!workspaceFolder) return;
+        if (!workspaceFolder) { return; }
 
         // Генерируем имена файлов по шаблонам
         const taskTemplate = taskItem.template || '{block}{task}.ts';
@@ -155,18 +162,30 @@ export function openTaskAndTestCommand() {
         await vscode.window.showTextDocument(testDocument, { viewColumn: vscode.ViewColumn.Two, preview: false });
 
         // Создаем новый терминал для каждой задачи
-        const terminal = vscode.window.createTerminal(`Тест: ${taskItem.name}`);
+        const terminalName = `Тест: ${taskItem.name}`;
+        let terminal = vscode.window.terminals.find(
+            t => t.name === terminalName);
+        if (!terminal) {
+            terminal = vscode.window.createTerminal(terminalName);
+            // Имя теста без расширения для npm run test
+            const testName = testFileName.replace('.ts', '').replace('.js', '');
+            terminal.sendText(`npm run test ${testName}`);
+        }
         terminal.show();
 
-        // Имя теста без расширения для npm run test
-        const testName = testFileName.replace('.ts', '').replace('.js', '');
-        terminal.sendText(`npm run test ${testName}`);
     });
 }
 
 export function runTestCommand(activeTestProvider: ActiveTestProvider) {
     return vscode.commands.registerCommand('examView.runTest', async (testItem: any) => {
+        // Сбрасываем репозиторий к последнему коммиту перед запуском теста
+        try {
+            await resetRepositoryToHead();
+        } catch (error) {
+            vscode.window.showErrorMessage(`Ошибка при сбросе репозитория: ${error}`);
+        }
 
+        // Остальная логика без изменений
         await vscode.commands.executeCommand('workbench.action.closeAllEditors');
         vscode.window.terminals.forEach(terminal => terminal.dispose());
 
@@ -203,4 +222,22 @@ export function runTestCommand(activeTestProvider: ActiveTestProvider) {
 
         activeTestProvider.setActiveTest(selectedTasks, test.time);
     });
+}
+
+// Вынесем логику сброса в отдельную функцию
+async function resetRepositoryToHead(): Promise<void> {
+    const terminal = vscode.window.createTerminal('Git Reset');
+    terminal.show();
+    
+    // Выполняем команду сброса
+    terminal.sendText('git reset --hard HEAD');
+    terminal.sendText('echo "Репозиторий сброшен к последнему коммиту"');
+    
+    // Ждем немного для выполнения команды
+    await new Promise(resolve => setTimeout(resolve, 2000));
+    
+    // Закрываем терминал
+    terminal.dispose();
+    
+    vscode.window.showInformationMessage('Репозиторий сброшен к последнему коммиту');
 }
