@@ -11,17 +11,17 @@ suite('Unit Tests', () => {
 
     test('Config stores block data correctly', () => {
         const blocks = [
-            { name: 'block1', task: 3, template: '{block}_{task}.ts', testTemplate: 'test_{block}_{task}.ts' },
-            { name: 'block2', task: 5 }
+            { name: 'block1', tasks: ['task1', 'task2'], template: '{block}_{task}.ts', testTemplate: 'test_{block}_{task}.ts' },
+            { name: 'block2', tasks: ['task1', 'task2', 'task3'] }
         ];
         const config = new Config(blocks, []);
         
         assert.strictEqual(config.blocks.length, 2);
         assert.strictEqual(config.blocks[0].name, 'block1');
-        assert.strictEqual(config.blocks[0].task, 3);
+        assert.strictEqual(config.blocks[0].tasks.length, 2);
         assert.strictEqual(config.blocks[0].template, '{block}_{task}.ts');
         assert.strictEqual(config.blocks[1].name, 'block2');
-        assert.strictEqual(config.blocks[1].task, 5);
+        assert.strictEqual(config.blocks[1].tasks.length, 3);
     });
 
     test('Config stores test data correctly', () => {
@@ -48,7 +48,7 @@ suite('Unit Tests', () => {
         const testTasks = [
             { block: 'math', task: 1, name: 'math01', template: '{block}{task}.ts', testTemplate: '{block}{task}.test.ts' },
             { block: 'math', task: 2, name: 'math02' }
-        ];
+        ] as any[];
         
         provider.setActiveTest(testTasks, 600);
         const children = provider.getChildren();
@@ -62,7 +62,7 @@ suite('Unit Tests', () => {
         const provider = new ActiveTestProvider();
         const testTasks = [
             { block: 'math', task: 1, name: 'math01' }
-        ];
+        ] as any[];
         
         provider.setActiveTest(testTasks, 600);
         assert.strictEqual(provider.getChildren().length, 1);

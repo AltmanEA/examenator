@@ -79,7 +79,8 @@ export function addBlockCommand(tasksProvider: TasksProvider) {
 
         const workspaceFolder = vscode.workspace.workspaceFolders?.[0];
         if (workspaceFolder) {
-            const blockPath = vscode.Uri.joinPath(workspaceFolder.uri, 'src', name);
+            const config = await readConfig();
+            const blockPath = vscode.Uri.joinPath(workspaceFolder.uri, config.path, name);
             await vscode.workspace.fs.createDirectory(blockPath);
         }
 
@@ -126,32 +127,56 @@ export function addTaskCommand(tasksProvider: TasksProvider) {
             return;
         }
 
-        // Шаблоны по умолчанию
-        const taskTemplate = block.template || '{block}{task}.ts';
-        const testTemplate = block.testTemplate || '{block}{task}.test.ts';
+        // Определяем шаблоны для файлов
+        let sourceTemplate = '{block}{task}.ts';
+        let taskTemplate = '{block}{task}.task.md';
+        let testTemplate = '{block}{task}.test.ts';
+        
+        // Проверяем новый формат templates
+        if (block.templates) {
+            sourceTemplate = block.templates.source || sourceTemplate;
+            taskTemplate = block.templates.task || taskTemplate;
+            testTemplate = block.templates.test || testTemplate;
+        }
+        // Проверяем старый формат для обратной совместимости
+        else if (block.template || block.testTemplate) {
+            sourceTemplate = block.template || sourceTemplate;
+            testTemplate = block.testTemplate || testTemplate;
+        }
 
         // Генерируем имена файлов
+        const sourceFileName = sourceTemplate
+            .replace('{block}', block.name)
+            .replace('{task}', taskName);
+            
         const taskFileName = taskTemplate
             .replace('{block}', block.name)
-            .replace('{task}', taskName); // Используем имя задачи вместо номера
-
+            .replace('{task}', taskName);
+            
         const testFileName = testTemplate
             .replace('{block}', block.name)
-            .replace('{task}', taskName); // Используем имя задачи вместо номера
+            .replace('{task}', taskName);
 
         const workspaceFolder = vscode.workspace.workspaceFolders?.[0];
         if (workspaceFolder) {
-            const taskFile = vscode.Uri.joinPath(workspaceFolder.uri, 'src', block.name, taskFileName);
-            const testFile = vscode.Uri.joinPath(workspaceFolder.uri, 'src', block.name, testFileName);
+            const config = await readConfig();
+            const sourceFile = vscode.Uri.joinPath(workspaceFolder.uri, config.path, block.name, sourceFileName);
+            const taskFile = vscode.Uri.joinPath(workspaceFolder.uri, config.path, block.name, taskFileName);
+            const testFile = vscode.Uri.joinPath(workspaceFolder.uri, config.path, block.name, testFileName);
 
+            // Создаем все три файла
+            await vscode.workspace.fs.writeFile(sourceFile, new Uint8Array());
             await vscode.workspace.fs.writeFile(taskFile, new Uint8Array());
             await vscode.workspace.fs.writeFile(testFile, new Uint8Array());
 
-            const document1 = await vscode.workspace.openTextDocument(taskFile);
-            const document2 = await vscode.workspace.openTextDocument(testFile);
+            // Открываем файлы в редакторе
+            const document1 = await vscode.workspace.openTextDocument(sourceFile);
+            const document2 = await vscode.workspace.openTextDocument(taskFile);
+            const document3 = await vscode.workspace.openTextDocument(testFile);
 
             await vscode.window.showTextDocument(document1, { viewColumn: vscode.ViewColumn.One });
             await vscode.window.showTextDocument(document2, { viewColumn: vscode.ViewColumn.Two });
+            await vscode.window.showTextDocument(document3, { viewColumn: vscode.ViewColumn.Three });
         }
 
         await writeConfig(config);

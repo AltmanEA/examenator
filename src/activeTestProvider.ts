@@ -7,6 +7,12 @@ export type SelectedTask = {
     name: string;
     template?: string;
     testTemplate?: string;
+    // Новый формат для задания трех файлов
+    templates?: {
+        source?: string;
+        task?: string;
+        test?: string;
+    };
 };
 
 export class ActiveTestProvider implements vscode.TreeDataProvider<vscode.TreeItem> {
@@ -102,7 +108,8 @@ export class ActiveTestProvider implements vscode.TreeDataProvider<vscode.TreeIt
                 task.block,
                 task.taskId,
                 task.template,
-                task.testTemplate
+                task.testTemplate,
+                task.templates
             )
         );
     }
@@ -119,7 +126,12 @@ class TaskTreeItem extends vscode.TreeItem {
         public readonly block: string,
         public readonly taskId: string, // Используем taskId вместо taskNum
         public readonly template?: string,
-        public readonly testTemplate?: string
+        public readonly testTemplate?: string,
+        public readonly templates?: {
+            source?: string;
+            task?: string;
+            test?: string;
+        }
     ) {
         super(name, vscode.TreeItemCollapsibleState.None);
         this.tooltip = `Блок: ${block}, Задача: ${taskId}`;
@@ -139,27 +151,107 @@ export function openTaskAndTestCommand() {
         const workspaceFolder = vscode.workspace.workspaceFolders?.[0];
         if (!workspaceFolder) { return; }
 
-        // Генерируем имена файлов по шаблонам
-        const taskTemplate = taskItem.template || '{block}{task}.ts';
-        const testTemplate = taskItem.testTemplate || '{block}{task}.test.ts';
+        // Проверяем, используется ли новый формат
+        const useNewFormat = !!taskItem.templates;
+        let testFileName = ''; // Объявляем переменную заранее
 
-        const taskFileName = taskTemplate
-            .replace('{block}', taskItem.block)
-            .replace('{task}', taskItem.taskId); // Используем taskId вместо номера
+        if (useNewFormat) {
+            // Новый формат - открываем три файла
+            let sourceTemplate = '{block}{task}.ts';
+            let taskTemplate = '{block}{task}.ts';
+            let testTemplate = '{block}{task}.test.ts';
 
-        const testFileName = testTemplate
-            .replace('{block}', taskItem.block)
-            .replace('{task}', taskItem.taskId); // Используем taskId вместо номера
+            // Используем новый формат
+            if (taskItem.templates) {
+                sourceTemplate = taskItem.templates.source || sourceTemplate;
+                taskTemplate = taskItem.templates.task || taskTemplate;
+                testTemplate = taskItem.templates.test || testTemplate;
+            }
 
-        // Открываем файл задачи в новой панели 
-        const taskFileUri = vscode.Uri.joinPath(workspaceFolder.uri, 'src', taskItem.block, taskFileName);
-        const taskDocument = await vscode.workspace.openTextDocument(taskFileUri);
-        await vscode.window.showTextDocument(taskDocument, { viewColumn: vscode.ViewColumn.One, preview: false });
+            // Генерируем имена файлов по шаблонам
+            const sourceFileName = sourceTemplate
+                .replace('{block}', taskItem.block)
+                .replace(/{task}/g, taskItem.taskId);
 
-        // Открываем файл теста в новой панели 
-        const testFileUri = vscode.Uri.joinPath(workspaceFolder.uri, 'src', taskItem.block, testFileName);
-        const testDocument = await vscode.workspace.openTextDocument(testFileUri);
-        await vscode.window.showTextDocument(testDocument, { viewColumn: vscode.ViewColumn.Two, preview: false });
+            const taskFileName = taskTemplate
+                .replace('{block}', taskItem.block)
+                .replace(/{task}/g, taskItem.taskId);
+
+            testFileName = testTemplate
+                .replace('{block}', taskItem.block)
+                .replace(/{task}/g, taskItem.taskId);
+
+            try {
+                // Открываем файл условия задачи
+                const taskFileUri = vscode.Uri.joinPath(workspaceFolder.uri, 'src', taskItem.block, taskFileName);
+                const taskDocument = await vscode.workspace.openTextDocument(taskFileUri);
+                await vscode.window.showTextDocument(taskDocument, {
+                    viewColumn: vscode.ViewColumn.One,
+                    preview: false
+                });
+
+                // Открываем файл исходного кода
+                const sourceFileUri = vscode.Uri.joinPath(workspaceFolder.uri, 'src', taskItem.block, sourceFileName);
+                const sourceDocument = await vscode.workspace.openTextDocument(sourceFileUri);
+                await vscode.window.showTextDocument(sourceDocument, {
+                    viewColumn: vscode.ViewColumn.Two,
+                    preview: false
+                });
+
+                // Открываем файл теста
+                const testFileUri = vscode.Uri.joinPath(workspaceFolder.uri, 'src', taskItem.block, testFileName);
+                const testDocument = await vscode.workspace.openTextDocument(testFileUri);
+                await vscode.window.showTextDocument(testDocument, {
+                    viewColumn: vscode.ViewColumn.Three,
+                    preview: false
+                });
+            } catch (error) {
+                vscode.window.showErrorMessage(`Ошибка при открытии файлов: ${error}`);
+                return;
+            }
+        } else {
+            // Старый формат - открываем два файла
+            let taskTemplate = '{block}{task}.ts';
+            let testTemplate = '{block}{task}.test.ts';
+
+            // Используем старый формат как fallback
+            if (taskItem.template) {
+                taskTemplate = taskItem.template;
+            }
+            if (taskItem.testTemplate) {
+                testTemplate = taskItem.testTemplate;
+            }
+
+            // Генерируем имена файлов по шаблонам
+            const taskFileName = taskTemplate
+                .replace('{block}', taskItem.block)
+                .replace(/{task}/g, taskItem.taskId);
+
+            testFileName = testTemplate
+                .replace('{block}', taskItem.block)
+                .replace(/{task}/g, taskItem.taskId);
+
+            try {
+                // Открываем файл задачи
+                const taskFileUri = vscode.Uri.joinPath(workspaceFolder.uri, 'src', taskItem.block, taskFileName);
+                const taskDocument = await vscode.workspace.openTextDocument(taskFileUri);
+                await vscode.window.showTextDocument(taskDocument, {
+                    viewColumn: vscode.ViewColumn.One,
+                    preview: false
+                });
+
+                // Открываем файл теста
+                const testFileUri = vscode.Uri.joinPath(workspaceFolder.uri, 'src', taskItem.block, testFileName);
+                const testDocument = await vscode.workspace.openTextDocument(testFileUri);
+                await vscode.window.showTextDocument(testDocument, {
+                    viewColumn: vscode.ViewColumn.Two,
+                    preview: false
+                });
+            } catch (error) {
+                vscode.window.showErrorMessage(`Ошибка при открытии файлов: ${error}`);
+                return;
+            }
+        }
 
         // Создаем новый терминал для каждой задачи
         const terminalName = `Тест: ${taskItem.name}`;
@@ -168,7 +260,7 @@ export function openTaskAndTestCommand() {
         if (!terminal) {
             terminal = vscode.window.createTerminal(terminalName);
             // Имя теста без расширения для npm run test
-            const testName = testFileName.replace('.ts', '').replace('.js', '');
+            const testName = testFileName.replace(/\.tsx$|\.ts$|\.js$/, '');
             terminal.sendText(`npm run test ${testName}`);
         }
         terminal.show();
@@ -209,7 +301,8 @@ export function runTestCommand(activeTestProvider: ActiveTestProvider) {
                             taskId: taskName,
                             name: taskName,
                             template: block.template,
-                            testTemplate: block.testTemplate
+                            testTemplate: block.testTemplate,
+                            templates: block.templates
                         });
                     }
                 }

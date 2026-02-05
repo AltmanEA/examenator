@@ -29,8 +29,8 @@ suite('Integration Tests', () => {
 
     test('TasksProvider shows blocks from config', async () => {
         const testConfig = new Config([
-            { name: 'block1', task: 3 },
-            { name: 'block2', task: 5 }
+            { name: 'block1', tasks: ['task1', 'task2'] },
+            { name: 'block2', tasks: ['task1', 'task2', 'task3'] }
         ]);
         
         sandbox.stub(require('../config'), 'readConfig').resolves(testConfig);
@@ -39,8 +39,8 @@ suite('Integration Tests', () => {
         const children = await provider.getChildren();
         
         assert.strictEqual(children.length, 2);
-        assert.strictEqual(children[0].label, 'block1 (задач: 3)');
-        assert.strictEqual(children[1].label, 'block2 (задач: 5)');
+        assert.strictEqual(children[0].label, 'block1 (задач: 2)');
+        assert.strictEqual(children[1].label, 'block2 (задач: 3)');
     });
 
     test('TestsProvider shows tests from config', async () => {

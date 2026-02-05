@@ -7,6 +7,12 @@ export type Block = {
   tasks: string[]; // Массив имен задач вместо массива объектов
   template?: string;
   testTemplate?: string;
+  // Новый формат для задания трех файлов
+  templates?: {
+    source?: string;
+    task?: string;
+    test?: string;
+  };
 };
 export type Tests = {
   time: number;
@@ -20,10 +26,13 @@ export type Tests = {
 export class Config {
   blocks: Block[];
   tests: Tests[];
+  // Путь к папке с блоками
+  path: string = 'src';
 
-  constructor(blocks: Block[] = [], tests: Tests[] = []) {
+  constructor(blocks: Block[] = [], tests: Tests[] = [], path: string = 'src') {
     this.blocks = blocks;
     this.tests = tests;
+    this.path = path;
   }
 }
 
@@ -40,7 +49,7 @@ export async function readConfig(): Promise<Config> {
     try {
         const data = await fs.readFile(configPath, 'utf-8');
         const json = JSON.parse(data);
-        return new Config(json.blocks || [], json.tests || []);
+        return new Config(json.blocks || [], json.tests || [], json.path);
     } catch {
         return createDefaultConfig();
     }
@@ -57,5 +66,5 @@ export async function writeConfig(config: Config): Promise<void> {
 }
 
 export function createDefaultConfig(): Config {
-    return new Config([], []);
+    return new Config([], [], 'src');
 }
