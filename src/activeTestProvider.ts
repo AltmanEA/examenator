@@ -3,7 +3,7 @@ import { readConfig } from './config';
 
 export type SelectedTask = {
     block: string;
-    task: number;
+    taskId: string; // Идентификатор задачи вместо номера
     name: string;
     template?: string;
     testTemplate?: string;
@@ -100,7 +100,7 @@ export class ActiveTestProvider implements vscode.TreeDataProvider<vscode.TreeIt
             new TaskTreeItem(
                 task.name,
                 task.block,
-                task.task,
+                task.taskId,
                 task.template,
                 task.testTemplate
             )
@@ -117,12 +117,12 @@ class TaskTreeItem extends vscode.TreeItem {
     constructor(
         public readonly name: string,
         public readonly block: string,
-        public readonly taskNum: number,
+        public readonly taskId: string, // Используем taskId вместо taskNum
         public readonly template?: string,
         public readonly testTemplate?: string
     ) {
         super(name, vscode.TreeItemCollapsibleState.None);
-        this.tooltip = `Блок: ${block}, Задача: ${taskNum}`;
+        this.tooltip = `Блок: ${block}, Задача: ${taskId}`;
         this.iconPath = new vscode.ThemeIcon('file');
         this.contextValue = 'task';
 
@@ -145,11 +145,11 @@ export function openTaskAndTestCommand() {
 
         const taskFileName = taskTemplate
             .replace('{block}', taskItem.block)
-            .replace('{task}', taskItem.taskNum.toString().padStart(2, '0'));
+            .replace('{task}', taskItem.taskId); // Используем taskId вместо номера
 
         const testFileName = testTemplate
             .replace('{block}', taskItem.block)
-            .replace('{task}', taskItem.taskNum.toString().padStart(2, '0'));
+            .replace('{task}', taskItem.taskId); // Используем taskId вместо номера
 
         // Открываем файл задачи в новой панели 
         const taskFileUri = vscode.Uri.joinPath(workspaceFolder.uri, 'src', taskItem.block, taskFileName);
@@ -202,12 +202,12 @@ export function runTestCommand(activeTestProvider: ActiveTestProvider) {
 
             for (const blockName of blockNames) {
                 const block = config.blocks.find(b => b.name === blockName);
-                if (block && block.task > 0) {
-                    for (let taskNum = 1; taskNum <= block.task; taskNum++) {
+                if (block && block.tasks.length > 0) {
+                    for (const taskName of block.tasks) {
                         allAvailableTasks.push({
                             block: blockName,
-                            task: taskNum,
-                            name: `${blockName}${taskNum.toString().padStart(2, '0')}`,
+                            taskId: taskName,
+                            name: taskName,
                             template: block.template,
                             testTemplate: block.testTemplate
                         });

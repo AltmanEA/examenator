@@ -22,7 +22,7 @@ export class TasksProvider implements vscode.TreeDataProvider<vscode.TreeItem> {
             }
 
             return config.blocks.map(block =>
-                new BlockTreeItem(block.name, block.task)
+                new BlockTreeItem(block.name, block.tasks.length)
             );
         } catch {
             return [new CreateConfigItem()];
@@ -37,10 +37,10 @@ export class TasksProvider implements vscode.TreeDataProvider<vscode.TreeItem> {
 class BlockTreeItem extends vscode.TreeItem {
     constructor(
         public readonly name: string,
-        public readonly task: number
+        public readonly taskCount: number
     ) {
-        super(`${name} (задач: ${task})`, vscode.TreeItemCollapsibleState.None);
-        this.tooltip = `Block: ${name}, Task: ${task}`;
+        super(`${name} (задач: ${taskCount})`, vscode.TreeItemCollapsibleState.None);
+        this.tooltip = `Block: ${name}, Task Count: ${taskCount}`;
         this.contextValue = 'block';
 
         this.command = {
@@ -73,7 +73,7 @@ export function addBlockCommand(tasksProvider: TasksProvider) {
         if (!name) { return; }
 
         const config = await readConfig();
-        const newBlock = { name, task: 0 };
+        const newBlock = { name, tasks: [] };
         config.blocks.push(newBlock);
         await writeConfig(config);
 
@@ -94,12 +94,35 @@ export function addTaskCommand(tasksProvider: TasksProvider) {
 
         if (!block) { return; }
 
-        block.task++;
-        const taskNum = block.task;
+        // Запрашиваем имя задачи у пользователя
+        const taskName = await vscode.window.showInputBox({
+            prompt: 'Введите имя задачи (латинские буквы, цифры, подчеркивания)',
+            validateInput: (value) => {
+                if (!value) {
+                    return 'Имя задачи не может быть пустым';
+                }
+                if (!/^[a-zA-Z0-9_]+$/.test(value)) {
+                    return 'Имя задачи должно содержать только латинские буквы, цифры и подчеркивания';
+                }
+                // Проверяем, что задача с таким именем еще не существует в блоке
+                if (block.tasks.some(t => t === value)) {
+                    return 'Задача с таким именем уже существует в этом блоке';
+                }
+                return null;
+            }
+        });
 
-        if (taskNum > 100) {
+        if (!taskName) { return; }
+
+        // Добавляем задачу в блок
+        block.tasks.push(taskName);
+
+        // Генерируем номер задачи на основе индекса в массиве
+        const taskIndex = block.tasks.length;
+
+        if (taskIndex > 100) {
             vscode.window.showErrorMessage('Достигнут лимит задач (100)');
-            block.task--;
+            block.tasks.pop(); // Удаляем последнюю добавленную задачу
             return;
         }
 
@@ -110,11 +133,11 @@ export function addTaskCommand(tasksProvider: TasksProvider) {
         // Генерируем имена файлов
         const taskFileName = taskTemplate
             .replace('{block}', block.name)
-            .replace('{task}', taskNum.toString().padStart(2, '0'));
+            .replace('{task}', taskName); // Используем имя задачи вместо номера
 
         const testFileName = testTemplate
             .replace('{block}', block.name)
-            .replace('{task}', taskNum.toString().padStart(2, '0'))
+            .replace('{task}', taskName); // Используем имя задачи вместо номера
 
         const workspaceFolder = vscode.workspace.workspaceFolders?.[0];
         if (workspaceFolder) {

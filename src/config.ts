@@ -4,7 +4,7 @@ import * as path from 'path';
 
 export type Block = {
   name: string;
-  task: number;
+  tasks: string[]; // Массив имен задач вместо массива объектов
   template?: string;
   testTemplate?: string;
 };
