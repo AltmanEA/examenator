@@ -158,9 +158,9 @@ export function openTaskAndTestCommand() {
 
         if (useNewFormat) {
             // Новый формат - открываем три файла
-            let sourceTemplate = '{block}{task}.ts';
-            let taskTemplate = '{block}{task}.ts';
-            let testTemplate = '{block}{task}.test.ts';
+            let sourceTemplate = '{task}.ts';
+            let taskTemplate = '{task}.ts';
+            let testTemplate = '{task}.test.ts';
 
             // Используем новый формат
             if (taskItem.templates) {
@@ -212,8 +212,8 @@ export function openTaskAndTestCommand() {
             }
         } else {
             // Старый формат - открываем два файла
-            let taskTemplate = '{block}{task}.ts';
-            let testTemplate = '{block}{task}.test.ts';
+            let taskTemplate = '{task}.ts';
+            let testTemplate = '{task}.test.ts';
 
             // Используем старый формат как fallback
             if (taskItem.template) {
