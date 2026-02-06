@@ -21,9 +21,18 @@ export class TasksProvider implements vscode.TreeDataProvider<vscode.TreeItem> {
                 return [new CreateConfigItem()];
             }
 
-            return config.blocks.map(block =>
-                new BlockTreeItem(block.name, block.tasks.length)
-            );
+            return config.blocks.map(block => {
+                // Определяем количество задач в зависимости от формата
+                let taskCount = 0;
+                if (block.tasks) {
+                    // Ручная нумерация: количество задач равно длине массива
+                    taskCount = block.tasks.length;
+                } else if (block.task) {
+                    // Автоматическая нумерация: количество задач задано числом
+                    taskCount = block.task;
+                }
+                return new BlockTreeItem(block.name, taskCount);
+            });
         } catch {
             return [new CreateConfigItem()];
         }
@@ -95,35 +104,98 @@ export function addTaskCommand(tasksProvider: TasksProvider) {
 
         if (!block) { return; }
 
-        // Запрашиваем имя задачи у пользователя
-        const taskName = await vscode.window.showInputBox({
-            prompt: 'Введите имя задачи (латинские буквы, цифры, подчеркивания)',
-            validateInput: (value) => {
-                if (!value) {
-                    return 'Имя задачи не может быть пустым';
+        let taskName = '';
+        
+        // Проверяем тип нумерации задач
+        if (block.tasks) {
+            // Ручная нумерация: запрашиваем имя задачи у пользователя
+            const inputName = await vscode.window.showInputBox({
+                prompt: 'Введите имя задачи (латинские буквы, цифры, подчеркивания)',
+                validateInput: (value) => {
+                    if (!value) {
+                        return 'Имя задачи не может быть пустым';
+                    }
+                    if (!/^[a-zA-Z0-9_]+$/.test(value)) {
+                        return 'Имя задачи должно содержать только латинские буквы, цифры и подчеркивания';
+                    }
+                    // Проверяем, что задача с таким именем еще не существует в блоке
+                    if (block.tasks && block.tasks.some(t => t === value)) {
+                        return 'Задача с таким именем уже существует в этом блоке';
+                    }
+                    return null;
                 }
-                if (!/^[a-zA-Z0-9_]+$/.test(value)) {
-                    return 'Имя задачи должно содержать только латинские буквы, цифры и подчеркивания';
-                }
-                // Проверяем, что задача с таким именем еще не существует в блоке
-                if (block.tasks.some(t => t === value)) {
-                    return 'Задача с таким именем уже существует в этом блоке';
-                }
-                return null;
+            });
+            
+            if (!inputName) { return; }
+            taskName = inputName;
+            
+            // Добавляем задачу в блок
+            if (block.tasks) {
+                block.tasks.push(taskName);
             }
-        });
+        } else if (block.task !== undefined) {
+            // Автоматическая нумерация: генерируем имя задачи на основе индекса
+            const taskIndex = block.task + 1;
+            taskName = taskIndex.toString();
+            
+            // Увеличиваем счетчик задач в блоке
+            block.task = taskIndex;
+            
+            if (taskIndex > 100) {
+                vscode.window.showErrorMessage('Достигнут лимит задач (100)');
+                block.task = 100; // Возвращаем к максимальному значению
+                return;
+            }
+        } else {
+            // Если ни одно из полей не определено, создаем массив tasks
+            block.tasks = [];
+            const inputName = await vscode.window.showInputBox({
+                prompt: 'Введите имя задачи (латинские буквы, цифры, подчеркивания)',
+                validateInput: (value) => {
+                    if (!value) {
+                        return 'Имя задачи не может быть пустым';
+                    }
+                    if (!/^[a-zA-Z0-9_]+$/.test(value)) {
+                        return 'Имя задачи должно содержать только латинские буквы, цифры и подчеркивания';
+                    }
+                    // Проверяем, что задача с таким именем еще не существует в блоке
+                    if (block.tasks && block.tasks.some(t => t === value)) {
+                        return 'Задача с таким именем уже существует в этом блоке';
+                    }
+                    return null;
+                }
+            });
+            
+            if (!inputName) { return; }
+            taskName = inputName;
+            
+            // Добавляем задачу в блок
+            if (block.tasks) {
+                block.tasks.push(taskName);
+            }
+        }
 
-        if (!taskName) { return; }
+        // Проверяем, что taskName был установлен
+        if (!taskName) {
+            vscode.window.showErrorMessage('Не удалось определить имя задачи');
+            return;
+        }
 
-        // Добавляем задачу в блок
-        block.tasks.push(taskName);
-
-        // Генерируем номер задачи на основе индекса в массиве
-        const taskIndex = block.tasks.length;
-
+        // Генерируем номер задачи на основе индекса в массиве или значения счетчика
+        let taskIndex = 0;
+        if (block.tasks) {
+            taskIndex = block.tasks.length;
+        } else if (block.task !== undefined) {
+            taskIndex = block.task;
+        }
+        
         if (taskIndex > 100) {
             vscode.window.showErrorMessage('Достигнут лимит задач (100)');
-            block.tasks.pop(); // Удаляем последнюю добавленную задачу
+            if (block.tasks) {
+                block.tasks.pop(); // Удаляем последнюю добавленную задачу
+            } else if (block.task !== undefined) {
+                block.task = 100; // Возвращаем к максимальному значению
+            }
             return;
         }
 

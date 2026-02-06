@@ -4,7 +4,8 @@ import * as path from 'path';
 
 export type Block = {
   name: string;
-  tasks: string[]; // Массив имен задач вместо массива объектов
+  tasks?: string[]; // Массив имен задач для ручной нумерации
+  task?: number; // Количество задач для автоматической нумерации
   template?: string;
   testTemplate?: string;
   // Новый формат для задания трех файлов
@@ -25,9 +26,8 @@ export type Tests = {
 
 export class Config {
   blocks: Block[];
-  tests: Tests[];
-  // Путь к папке с блоками
-  path: string = 'src';
+  tests: Tests[];  
+  path: string;
 
   constructor(blocks: Block[] = [], tests: Tests[] = [], path: string = 'src') {
     this.blocks = blocks;

@@ -150,6 +150,7 @@ export function openTaskAndTestCommand() {
     return vscode.commands.registerCommand('examView.openTaskAndTest', async (taskItem: TaskTreeItem) => {
         const workspaceFolder = vscode.workspace.workspaceFolders?.[0];
         if (!workspaceFolder) { return; }
+        const config = await readConfig();
 
         // Проверяем, используется ли новый формат
         const useNewFormat = !!taskItem.templates;
@@ -183,7 +184,7 @@ export function openTaskAndTestCommand() {
 
             try {
                 // Открываем файл условия задачи
-                const taskFileUri = vscode.Uri.joinPath(workspaceFolder.uri, 'src', taskItem.block, taskFileName);
+                const taskFileUri = vscode.Uri.joinPath(workspaceFolder.uri, config.path, taskItem.block, taskFileName);
                 const taskDocument = await vscode.workspace.openTextDocument(taskFileUri);
                 await vscode.window.showTextDocument(taskDocument, {
                     viewColumn: vscode.ViewColumn.One,
@@ -191,7 +192,7 @@ export function openTaskAndTestCommand() {
                 });
 
                 // Открываем файл исходного кода
-                const sourceFileUri = vscode.Uri.joinPath(workspaceFolder.uri, 'src', taskItem.block, sourceFileName);
+                const sourceFileUri = vscode.Uri.joinPath(workspaceFolder.uri, config.path, taskItem.block, sourceFileName);
                 const sourceDocument = await vscode.workspace.openTextDocument(sourceFileUri);
                 await vscode.window.showTextDocument(sourceDocument, {
                     viewColumn: vscode.ViewColumn.Two,
@@ -199,7 +200,7 @@ export function openTaskAndTestCommand() {
                 });
 
                 // Открываем файл теста
-                const testFileUri = vscode.Uri.joinPath(workspaceFolder.uri, 'src', taskItem.block, testFileName);
+                const testFileUri = vscode.Uri.joinPath(workspaceFolder.uri, config.path, taskItem.block, testFileName);
                 const testDocument = await vscode.workspace.openTextDocument(testFileUri);
                 await vscode.window.showTextDocument(testDocument, {
                     viewColumn: vscode.ViewColumn.Three,
@@ -233,7 +234,7 @@ export function openTaskAndTestCommand() {
 
             try {
                 // Открываем файл задачи
-                const taskFileUri = vscode.Uri.joinPath(workspaceFolder.uri, 'src', taskItem.block, taskFileName);
+                const taskFileUri = vscode.Uri.joinPath(workspaceFolder.uri, config.path, taskItem.block, taskFileName);
                 const taskDocument = await vscode.workspace.openTextDocument(taskFileUri);
                 await vscode.window.showTextDocument(taskDocument, {
                     viewColumn: vscode.ViewColumn.One,
@@ -241,7 +242,7 @@ export function openTaskAndTestCommand() {
                 });
 
                 // Открываем файл теста
-                const testFileUri = vscode.Uri.joinPath(workspaceFolder.uri, 'src', taskItem.block, testFileName);
+                const testFileUri = vscode.Uri.joinPath(workspaceFolder.uri, config.path, taskItem.block, testFileName);
                 const testDocument = await vscode.workspace.openTextDocument(testFileUri);
                 await vscode.window.showTextDocument(testDocument, {
                     viewColumn: vscode.ViewColumn.Two,
@@ -294,16 +295,33 @@ export function runTestCommand(activeTestProvider: ActiveTestProvider) {
 
             for (const blockName of blockNames) {
                 const block = config.blocks.find(b => b.name === blockName);
-                if (block && block.tasks.length > 0) {
-                    for (const taskName of block.tasks) {
-                        allAvailableTasks.push({
-                            block: blockName,
-                            taskId: taskName,
-                            name: taskName,
-                            template: block.template,
-                            testTemplate: block.testTemplate,
-                            templates: block.templates
-                        });
+                if (block) {
+                    // Проверяем, какой формат используется
+                    if (block.tasks && block.tasks.length > 0) {
+                        // Ручная нумерация: используем массив имен задач
+                        for (const taskName of block.tasks) {
+                            allAvailableTasks.push({
+                                block: blockName,
+                                taskId: taskName,
+                                name: taskName,
+                                template: block.template,
+                                testTemplate: block.testTemplate,
+                                templates: block.templates
+                            });
+                        }
+                    } else if (block.task !== undefined && block.task > 0) {
+                        // Автоматическая нумерация: генерируем имена задач от 1 до block.task
+                        for (let i = 1; i <= block.task; i++) {
+                            const taskName = blockName+(i < 10 ? '0' + i : i.toString());
+                            allAvailableTasks.push({
+                                block: blockName,
+                                taskId: taskName,
+                                name: taskName,
+                                template: block.template,
+                                testTemplate: block.testTemplate,
+                                templates: block.templates
+                            });
+                        }
                     }
                 }
             }

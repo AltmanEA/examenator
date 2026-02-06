@@ -18,10 +18,10 @@ suite('Unit Tests', () => {
         
         assert.strictEqual(config.blocks.length, 2);
         assert.strictEqual(config.blocks[0].name, 'block1');
-        assert.strictEqual(config.blocks[0].tasks.length, 2);
+        assert.strictEqual(config.blocks[0].tasks?.length, 2);
         assert.strictEqual(config.blocks[0].template, '{block}_{task}.ts');
         assert.strictEqual(config.blocks[1].name, 'block2');
-        assert.strictEqual(config.blocks[1].tasks.length, 3);
+        assert.strictEqual(config.blocks[1].tasks?.length, 3);
     });
 
     test('Config stores test data correctly', () => {
