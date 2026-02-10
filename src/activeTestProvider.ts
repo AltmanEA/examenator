@@ -42,6 +42,13 @@ export class ActiveTestProvider implements vscode.TreeDataProvider<vscode.TreeIt
         this.startTimer();
         this._onDidChangeTreeData.fire(undefined);
     }
+    
+    setSelectedTasks(tasks: SelectedTask[]): void {
+        this.tasks = tasks;
+        this.stopTimer();
+        this.statusBarItem.hide();
+        this._onDidChangeTreeData.fire(undefined);
+    }
 
     clearActiveTest(): void {
         this.tasks = [];

@@ -1,51 +1,34 @@
-# Examenator - Technical Specification
+# Спецификация Examenator
 
-## Overview
+## Общее описание
 
-Examenator is a Visual Studio Code extension designed for organizing and conducting programming exams. It provides features for creating task blocks, forming time-limited tests, and automatically checking solutions.
+Examenator - расширение для Visual Studio Code, предназначенное для организации и проведения структурированного тестирования. Оно позволяет создавать тесты из наборов задач, отслеживать время выполнения и автоматически управлять состоянием репозитория.
 
-## Architecture
+## Архитектура
 
-The application follows a modular architecture with the following main components:
+### Основные компоненты
 
-### Core Components
+1. **Extension** (`src/extension.ts`) - точка входа расширения, регистрирует команды и создает представления
+2. **Config** (`src/config.ts`) - управление конфигурацией расширения
+3. **Providers** (`src/taskProvider.ts`, `src/testProvider.ts`, `src/activeTestProvider.ts`) - поставщики данных для TreeView
+4. **Commands** - обработчики команд пользователя
 
-1. **Extension Entry Point** (`extension.ts`)
-   - Main activation function that initializes all providers and commands
-   - Registers tree views for tasks, tests, and active test
-   - Sets up command handlers for all user interactions
+### Структура данных
 
-2. **Configuration Management** (`config.ts`)
-   - Handles reading and writing of `config.json`
-   - Defines data structures for blocks and tests
-   - Provides default configuration creation
-
-3. **Task Management** (`taskProvider.ts`)
-   - Implements TreeDataProvider for the Tasks view
-   - Handles block and task creation
-   - Manages file creation for tasks (source, task description, test files)
-
-4. **Test Management** (`testProvider.ts`)
-   - Implements TreeDataProvider for the Tests view
-   - Handles test creation and configuration
-   - Manages test definitions in config.json
-
-5. **Active Test Execution** (`activeTestProvider.ts`)
-   - Implements TreeDataProvider for the Active Test view
-   - Manages test execution and timing
-   - Handles file opening and terminal management during tests
-
-## Data Structures
-
-### Config Structure
-
+#### Config
 ```typescript
+class Config {
+  blocks: Block[];
+  tests: Tests[];
+  path: string;
+}
+
 type Block = {
   name: string;
-  tasks: string[]; // Array of task names
+  tasks?: string[]; // Массив имен задач для ручной нумерации
+  task?: number; // Количество задач для автоматической нумерации
   template?: string;
   testTemplate?: string;
-  // New format for specifying three files
   templates?: {
     source?: string;
     task?: string;
@@ -62,158 +45,92 @@ type Tests = {
 };
 ```
 
-### Active Test Task Structure
+## Функции
 
-```typescript
-type SelectedTask = {
-  block: string;
-  taskId: string; // Task identifier instead of number
-  name: string;
-  template?: string;
-  testTemplate?: string;
-  // New format for specifying three files
-  templates?: {
-    source?: string;
-    task?: string;
-    test?: string;
-  };
-};
-```
+### 1. Управление конфигурацией
 
-## Component Details
+#### Загрузка конфигурации
+- Чтение файла `config.json` из корня рабочей области
+- Создание конфигурации по умолчанию при отсутствии файла
 
-### Extension Activation (`extension.ts`)
+#### Структура конфигурации
+- `path` - путь к директории с задачами
+- `blocks` - массив блоков задач
+- `tests` - массив тестов
 
-The extension activates on startup and:
-1. Creates instances of all providers (TasksProvider, TestsProvider, ActiveTestProvider)
-2. Registers tree views in the activity bar
-3. Registers all command handlers
-4. Manages the extension lifecycle
+### 2. Представления (TreeView)
 
-### Configuration Management (`config.ts`)
+#### Tasks View
+- Отображает список блоков задач из конфигурации
+- Показывает количество задач в каждом блоке
+- При выборе блока отображает все задачи блока в "Выбранные задачи"
 
-Handles all configuration-related operations:
-1. Reading `config.json` from the workspace root
-2. Writing updated configuration to `config.json`
-3. Providing default configuration when file doesn't exist
-4. Managing the path to the blocks directory (default: `src`)
+#### Tests View
+- Отображает список тестов из конфигурации
+- Показывает время выполнения и состав блоков для каждого теста
+- При выборе теста запускает тест и отображает выбранные задачи
 
-### Task Provider (`taskProvider.ts`)
+#### Selected Tasks View
+- Отображает задачи выбранного теста или блока
+- Позволяет открыть файлы задачи и теста
 
-Manages the Tasks view and task creation:
-1. Implements TreeDataProvider to display blocks
-2. Handles "Add Block" command to create new blocks
-3. Handles "Add Task" command to create new tasks within blocks
-4. Creates three files for each task:
-   - Source file (implementation)
-   - Task file (description)
-   - Test file (test implementation)
-5. Opens created files in the editor
+### 3. Команды
 
-### Test Provider (`testProvider.ts`)
+#### examView.selectTest
+- Сбрасывает репозиторий к последнему коммиту
+- Закрывает все открытые редакторы
+- Удаляет все открытые терминалы
+- Выбирает случайные задачи из указанных блоков
+- Устанавливает активный тест с таймером
 
-Manages the Tests view and test creation:
-1. Implements TreeDataProvider to display tests
-2. Handles "Add Test" command to create new tests
-3. Displays test information including time and block details
+#### examView.selectBlock
+- Выбирает все задачи из указанного блока
+- Отображает их в "Выбранные задачи"
 
-### Active Test Provider (`activeTestProvider.ts`)
+#### examView.openTaskAndTest
+- Открывает файлы задачи и теста в отдельных вкладках
+- Создает терминал и запускает тест
 
-Manages active test execution:
-1. Implements TreeDataProvider to display active test tasks
-2. Handles "Run Test" command to start a test
-3. Manages the countdown timer with visual status bar indicators
-4. Handles "Open Task and Test" command to open task files
-5. Manages terminal creation for test execution
-6. Implements repository reset functionality before test start
+### 4. Таймер
 
-## File Management
+#### ActiveTestProvider
+- Управляет таймером теста
+- Отображает оставшееся время в строке состояния
+- Меняет цвет индикатора при приближении к концу времени
+- Показывает предупреждение по окончании времени
 
-### Template System
+### 5. Управление файлами
 
-The application uses a flexible template system for file naming:
-- `{block}` placeholder is replaced with the block name
-- `{task}` placeholder is replaced with the task identifier
-- Supports both old format (template/testTemplate) and new format (templates.source/templates.task/templates.test)
+#### Шаблоны имен файлов
+- Поддержка старого формата (два файла: задача и тест)
+- Поддержка нового формата (три файла: исходный код, задача, тест)
+- Подстановка переменных `{block}` и `{task}` в имена файлов
 
-### File Creation Process
+#### Открытие файлов
+- Открытие файлов в отдельных вкладках
+- Поддержка различных раскладок (один, два или три файла)
 
-When adding a task:
-1. Three files are created in the block directory:
-   - Source file (implementation)
-   - Task file (description)
-   - Test file (test implementation)
-2. Files are opened in adjacent editor columns
-3. Task is added to the block's task list in config.json
+### 6. Управление репозиторием
 
-## Test Execution
+#### Сброс к последнему коммиту
+- Выполняет команду `git reset --hard HEAD` перед началом теста
+- Показывает уведомление об успешном сбросе
 
-### Test Start Process
+## Поток выполнения
 
-When running a test:
-1. Repository is reset to the last commit
-2. All open editors are closed
-3. All terminals are disposed
-4. Random tasks are selected from specified blocks
-5. Active test is set with selected tasks and time
-6. Timer starts and status bar item is displayed
+1. Пользователь открывает рабочую область с файлом `config.json`
+2. Расширение загружает конфигурацию и создает TreeView
+3. Пользователь выбирает тест из "Tests View"
+4. Расширение сбрасывает репозиторий и выбирает случайные задачи
+5. Выбранные задачи отображаются в "Selected Tasks View"
+6. Пользователь открывает задачу, расширение открывает файлы и запускает тест
 
-### Task Opening Process
+## Зависимости
 
-When opening a task during a test:
-1. Three files are opened in adjacent editor columns:
-   - Task file (description)
-   - Source file (implementation)
-   - Test file (test implementation)
-2. A new terminal is created for test execution
-3. Test command is sent to the terminal
+- VS Code API
+- Node.js fs/promises
+- Git
 
-## Timer Management
+## Совместимость
 
-The active test timer provides visual feedback:
-- Green: Normal time (more than 30% remaining)
-- Yellow: Warning time (30% or less remaining)
-- Red: Alert time (10% or less remaining)
-- Automatic notification when time expires
-
-## Testing
-
-The extension includes both unit and integration tests:
-- Unit tests for configuration and provider logic
-- Integration tests for UI components
-- Tests are run using the VS Code test framework
-
-## Development Workflow
-
-### Building
-
-```bash
-npm run compile
-```
-
-### Running Tests
-
-```bash
-npm test
-```
-
-### Development Mode
-
-Press F5 in VS Code to launch the extension in development mode.
-
-## Extension Manifest
-
-The extension is defined in `package.json` with:
-- Required VS Code engine version
-- Activation events (onStartupFinished)
-- Contributed commands and menus
-- Views and view containers
-- Categories and description
-
-## Error Handling
-
-The application includes error handling for:
-- File system operations
-- Configuration reading/writing
-- Git operations
-- User input validation
+- VS Code версии 1.105.0 или выше

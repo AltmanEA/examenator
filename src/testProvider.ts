@@ -37,8 +37,8 @@ class TestTreeItem extends vscode.TreeItem {
         this.iconPath = new vscode.ThemeIcon('watch');
 
         this.command = {
-            command: 'examView.runTest',
-            title: 'Запустить тест',
+            command: 'examView.selectTest',
+            title: 'Выбрать тест',
             arguments: [this]
         };
     }

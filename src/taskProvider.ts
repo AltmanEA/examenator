@@ -53,6 +53,12 @@ class BlockTreeItem extends vscode.TreeItem {
         super(`${name} (задач: ${taskCount})`, vscode.TreeItemCollapsibleState.None);
         this.tooltip = `Block: ${name}, Task Count: ${taskCount}`;
         this.contextValue = 'block';
+        
+        this.command = {
+            command: 'examView.selectBlock',
+            title: 'Выбрать блок',
+            arguments: [this]
+        };
     }
 }
 

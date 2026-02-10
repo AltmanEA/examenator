@@ -53,8 +53,8 @@
           "name": "Тесты"
         },
         {
-          "id": "activeTestView",
-          "name": "Активный тест"
+          "id": "selectedTasksView",
+          "name": "Выбранные задачи"
         }
       ]
     }
