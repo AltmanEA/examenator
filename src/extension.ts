@@ -1,8 +1,8 @@
 import * as vscode from 'vscode';
 import { ActiveTestProvider, openTaskAndTestCommand, runTestCommand } from './activeTestProvider';
 import { Config, writeConfig } from './config';
-import { addBlockCommand, addTaskCommand, TasksProvider } from './taskProvider';
-import { addTestCommand, TestsProvider } from './testProvider';
+import { TasksProvider } from './taskProvider';
+import { TestsProvider } from './testProvider';
 
 export function activate(context: vscode.ExtensionContext) {
     const tasksProvider = new TasksProvider();
@@ -20,10 +20,6 @@ export function activate(context: vscode.ExtensionContext) {
     });
 
     const commands = [
-        createConfigCommand(tasksProvider, testsProvider),
-        addBlockCommand(tasksProvider),
-        addTaskCommand(tasksProvider),
-        addTestCommand(testsProvider),
         runTestCommand(activeTestProvider),
         openTaskAndTestCommand()
     ];
@@ -36,15 +32,6 @@ export function activate(context: vscode.ExtensionContext) {
     );
 }
 
-function createConfigCommand(tasksProvider: TasksProvider, testsProvider: TestsProvider) {
-    return vscode.commands.registerCommand('examView.createConfig', async () => {
-        const config = new Config();
-        await writeConfig(config);
-        tasksProvider.refresh();
-        testsProvider.refresh();
-        vscode.window.showInformationMessage('Конфигурация создана');
-    });
-}
 
 
 export function deactivate() { }

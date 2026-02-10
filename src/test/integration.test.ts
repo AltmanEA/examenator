@@ -16,15 +16,14 @@ suite('Integration Tests', () => {
         sandbox.restore();
     });
 
-    test('TasksProvider shows create config when no config file', async () => {
+    test('TasksProvider shows message when no config file', async () => {
         // Мокаем readConfig чтобы симулировать отсутствие файла
         sandbox.stub(require('../config'), 'readConfig').rejects(new Error('File not found'));
         
         const provider = new TasksProvider();
         const children = await provider.getChildren();
         
-        assert.strictEqual(children.length, 1);
-        assert.strictEqual(children[0].label, 'Создать конфигурацию');
+        assert.strictEqual(children.length, 0);
     });
 
     test('TasksProvider shows blocks from config', async () => {

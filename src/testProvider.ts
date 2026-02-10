@@ -51,29 +51,5 @@ class TestTreeItem extends vscode.TreeItem {
     }
 }
 
-export function addTestCommand(testsProvider: TestsProvider) {
-    return vscode.commands.registerCommand('examView.addTest', async () => {
-        const time = await vscode.window.showInputBox({
-            prompt: 'Введите время на тест (в секундах)',
-            validateInput: (value) => {
-                const num = parseInt(value);
-                return num > 0 ? null : 'Введите положительное число';
-            }
-        });
-
-        if (!time) { return; }
-
-        const config = await readConfig();
-        const newTest = {
-            time: parseInt(time),
-            blocks: []
-        };
-
-        config.tests.push(newTest);
-        await writeConfig(config);
-        testsProvider.refresh();
-        vscode.window.showInformationMessage(`Тест добавлен с временем ${time} секунд`);
-    });
-}
 
 

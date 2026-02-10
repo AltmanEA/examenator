@@ -4,6 +4,7 @@
   "description": "Расширение для управления заданиями и тестами",
   "repository": "https://github.com/AltmanEA/examenator",
   "version": "0.0.4",
+  "publisher": "AltmanEA",
   "engines": {
     "vscode": "^1.105.0"
   },
@@ -16,22 +17,6 @@
   "main": "./out/extension.js",
   "contributes": {
     "commands": [
-      {
-        "command": "examView.createConfig",
-        "title": "Создать конфигурацию"
-      },
-      {
-        "command": "examView.addBlock",
-        "title": "Добавить блок"
-      },
-      {
-        "command": "examView.addTask",
-        "title": "Добавить задачу"
-      },
-      {
-        "command": "examView.addTest",
-        "title": "Добавить тест"
-      },
       {
         "command": "examView.runTest",
         "title": "Запустить тест"
@@ -46,18 +31,7 @@
       }
     ],
     "menus": {
-      "view/title": [
-        {
-          "command": "examView.addBlock",
-          "when": "view == tasksView",
-          "group": "navigation"
-        },
-        {
-          "command": "examView.addTest",
-          "when": "view == testsView",
-          "group": "navigation"
-        }
-      ]
+      "view/title": []
     },
     "viewsContainers": {
       "activitybar": [
