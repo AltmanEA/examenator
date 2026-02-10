@@ -1,4 +1,5 @@
 import * as assert from 'assert';
+import * as sinon from 'sinon';
 import { Config } from '../config';
 import { ActiveTestProvider } from '../activeTestProvider';
 
@@ -36,5 +37,62 @@ suite('Unit Tests', () => {
         
         provider.clearActiveTest();
         assert.strictEqual(provider.getChildren().length, 0);
+    });
+});
+
+suite('ActiveTestProvider Additional Tests', () => {
+    let sandbox: sinon.SinonSandbox;
+
+    setup(() => {
+        sandbox = sinon.createSandbox();
+    });
+
+    teardown(() => {
+        sandbox.restore();
+    });
+
+    test('setSelectedTasks sets tasks and stops timer', () => {
+        const provider = new ActiveTestProvider();
+        const testTasks = [
+            { block: 'math', task: 1, name: 'math01' }
+        ] as any[];
+        
+        // Заглушка для stopTimer
+        const stopTimerStub = sandbox.stub(provider as any, 'stopTimer');
+        
+        provider.setSelectedTasks(testTasks);
+        const children = provider.getChildren();
+        
+        assert.strictEqual(children.length, 1);
+        assert.strictEqual(children[0].label, 'math01');
+        assert.strictEqual(stopTimerStub.calledOnce, true);
+    });
+
+    test('updateStatusBar changes color based on time', () => {
+        const provider: any = new ActiveTestProvider();
+        provider.timeLeft = 600; // 10 минут
+        provider.totalTime = 600;
+        provider.warningTime = 180; // 30%
+        provider.alertTime = 60;   // 10%
+        provider.statusBarItem = { text: '', color: undefined, backgroundColor: undefined };
+        
+        // Нормальное время
+        provider.updateStatusBar();
+        assert.strictEqual(provider.statusBarItem.text, '$(watch) 10:00');
+        
+        // Время предупреждения
+        provider.timeLeft = 179;
+        provider.updateStatusBar();
+        // Проверяем, что цвет изменился на warning
+        
+        // Время тревоги
+        provider.timeLeft = 59;
+        provider.updateStatusBar();
+        // Проверяем, что цвет изменился на error
+        
+        // Время истекло
+        provider.timeLeft = 0;
+        provider.updateStatusBar();
+        assert.strictEqual(provider.statusBarItem.text, '$(error) Время вышло!');
     });
 });
