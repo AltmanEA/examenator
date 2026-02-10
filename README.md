@@ -33,10 +33,20 @@ Examenator - это расширение VS Code, предназначенное
     {
       "name": "nextjs",
       "task": 40,
+      "testCommand": "npm run test:e2e",
       "templates": {
         "source": "page.tsx",
         "test": "{task}.spec.ts",
         "task": "README.md"
+      }
+    },
+    {
+      "name": "drizzle",
+      "task": 28,
+      "templates": {
+        "source": "{task}/schema.ts",
+        "test": "{task}/{task}.test.ts",
+        "task": "{task}/README.md"
       }
     }
   ],
@@ -47,6 +57,19 @@ Examenator - это расширение VS Code, предназначенное
         {
           "block": "nextjs",
           "task": 4
+        }
+      ]
+    },
+    {
+      "time": 1800,
+      "blocks": [
+        {
+          "block": "nextjs",
+          "task": 2
+        },
+        {
+          "block": "drizzle",
+          "task": 3
         }
       ]
     }
@@ -61,6 +84,7 @@ Examenator - это расширение VS Code, предназначенное
   - `name` - имя блока
   - `task` - количество задач (для автоматической нумерации)
   - `tasks` - массив имен задач (для ручной нумерации)
+  - `testCommand` - команда для запуска тестов (по умолчанию "npm run test")
   - `templates` - шаблоны имен файлов
 - `tests` - массив тестов
   - `time` - время выполнения теста в секундах

@@ -8,6 +8,7 @@ export type Block = {
   task?: number; // Количество задач для автоматической нумерации
   template?: string;
   testTemplate?: string;
+  testCommand?: string; // Команда для запуска тестов для блока (по умолчанию npm run test)
   // Новый формат для задания трех файлов
   templates?: {
     source?: string;

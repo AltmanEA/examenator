@@ -155,6 +155,10 @@ class TaskTreeItem extends vscode.TreeItem {
 
 export function openTaskAndTestCommand() {
     return vscode.commands.registerCommand('examView.openTaskAndTest', async (taskItem: TaskTreeItem) => {
+        // Закрываем все открытые редакторы и терминалы перед открытием новых
+        await vscode.commands.executeCommand('workbench.action.closeAllEditors');
+        vscode.window.terminals.forEach(terminal => terminal.dispose());
+        
         const workspaceFolder = vscode.workspace.workspaceFolders?.[0];
         if (!workspaceFolder) { return; }
         const config = await readConfig();
@@ -261,15 +265,20 @@ export function openTaskAndTestCommand() {
             }
         }
 
-        // Создаем новый терминал для каждой задачи
-        const terminalName = `Тест: ${taskItem.name}`;
+        // Создаем новый терминал для каждой задачи с уникальным именем, включающим имя блока
+        const terminalName = `Тест: ${taskItem.name} (${taskItem.block})`;
         let terminal = vscode.window.terminals.find(
             t => t.name === terminalName);
         if (!terminal) {
             terminal = vscode.window.createTerminal(terminalName);
             // Имя теста без расширения для npm run test
             const testName = testFileName.replace(/\.tsx$|\.ts$|\.js$/, '');
-            terminal.sendText(`npm run test ${testName}`);
+            
+            // Получаем команду для запуска тестов из конфигурации блока или используем по умолчанию
+            const block = config.blocks.find(b => b.name === taskItem.block);
+            const testCommand = block?.testCommand || 'npm run test';
+            
+            terminal.sendText(`${testCommand} ${testName}`);
         }
         terminal.show();
 

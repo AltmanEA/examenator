@@ -3,11 +3,21 @@
     "blocks": [
         {
             "name": "nextjs",
-            "task": 40,
+            "task": 28,
+            "testCommand": "npm run test:e2e",
             "templates": {
-                "source": "page.tsx",
-                "test": "{task}.spec.ts",
-                "task": "README.md"
+                "source": "{task}/page.tsx",
+                "test": "{task}/{task}.spec.ts",
+                "task": "{task}/README.md"
+            }
+        },
+        {
+            "name": "drizzle",
+            "task": 28,
+            "templates": {
+                "source": "{task}/schema.ts",
+                "test": "{task}/{task}.test.ts",
+                "task": "{task}/README.md"
             }
         }
     ],
@@ -17,7 +27,20 @@
             "blocks": [
                 {
                     "block": "nextjs",
-                    "task": 4
+                    "task": 5
+                }
+            ]
+        },
+        {
+            "time": 1800,
+            "blocks": [
+                {
+                    "block": "nextjs",
+                    "task": 2
+                },
+                {
+                    "block": "drizzle",
+                    "task": 3
                 }
             ]
         }
