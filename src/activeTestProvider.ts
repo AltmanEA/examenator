@@ -163,6 +163,25 @@ export function openTaskAndTestCommand() {
         if (!workspaceFolder) { return; }
         const config = await readConfig();
 
+        // Функция для безопасного открытия файла
+        async function tryOpenFile(
+            fileName: string,
+            viewColumn: vscode.ViewColumn,
+            description: string,
+            workspaceFolder: vscode.WorkspaceFolder,
+            config: any
+        ): Promise<boolean> {
+            try {
+                const fileUri = vscode.Uri.joinPath(workspaceFolder.uri, config.path, taskItem.block, fileName);
+                const document = await vscode.workspace.openTextDocument(fileUri);
+                await vscode.window.showTextDocument(document, { viewColumn, preview: false });
+                return true;
+            } catch (error) {
+                vscode.window.showWarningMessage(`Файл ${description} не найден: ${fileName}. Продолжаем без него.`);
+                return false;
+            }
+        }
+
         // Проверяем, используется ли новый формат
         const useNewFormat = !!taskItem.templates;
         let testFileName = ''; // Объявляем переменную заранее
@@ -193,34 +212,10 @@ export function openTaskAndTestCommand() {
                 .replace('{block}', taskItem.block)
                 .replace(/{task}/g, taskItem.taskId);
 
-            try {
-                // Открываем файл условия задачи
-                const taskFileUri = vscode.Uri.joinPath(workspaceFolder.uri, config.path, taskItem.block, taskFileName);
-                const taskDocument = await vscode.workspace.openTextDocument(taskFileUri);
-                await vscode.window.showTextDocument(taskDocument, {
-                    viewColumn: vscode.ViewColumn.One,
-                    preview: false
-                });
-
-                // Открываем файл исходного кода
-                const sourceFileUri = vscode.Uri.joinPath(workspaceFolder.uri, config.path, taskItem.block, sourceFileName);
-                const sourceDocument = await vscode.workspace.openTextDocument(sourceFileUri);
-                await vscode.window.showTextDocument(sourceDocument, {
-                    viewColumn: vscode.ViewColumn.Two,
-                    preview: false
-                });
-
-                // Открываем файл теста
-                const testFileUri = vscode.Uri.joinPath(workspaceFolder.uri, config.path, taskItem.block, testFileName);
-                const testDocument = await vscode.workspace.openTextDocument(testFileUri);
-                await vscode.window.showTextDocument(testDocument, {
-                    viewColumn: vscode.ViewColumn.Three,
-                    preview: false
-                });
-            } catch (error) {
-                vscode.window.showErrorMessage(`Ошибка при открытии файлов: ${error}`);
-                return;
-            }
+            // Пытаемся открыть каждый файл, продолжаем при ошибке
+            await tryOpenFile(taskFileName, vscode.ViewColumn.One, 'условия задачи', workspaceFolder, config);
+            await tryOpenFile(sourceFileName, vscode.ViewColumn.Two, 'исходного кода', workspaceFolder, config);
+            await tryOpenFile(testFileName, vscode.ViewColumn.Three, 'теста', workspaceFolder, config);
         } else {
             // Старый формат - открываем два файла
             let taskTemplate = '{task}.ts';
@@ -243,26 +238,9 @@ export function openTaskAndTestCommand() {
                 .replace('{block}', taskItem.block)
                 .replace(/{task}/g, taskItem.taskId);
 
-            try {
-                // Открываем файл задачи
-                const taskFileUri = vscode.Uri.joinPath(workspaceFolder.uri, config.path, taskItem.block, taskFileName);
-                const taskDocument = await vscode.workspace.openTextDocument(taskFileUri);
-                await vscode.window.showTextDocument(taskDocument, {
-                    viewColumn: vscode.ViewColumn.One,
-                    preview: false
-                });
-
-                // Открываем файл теста
-                const testFileUri = vscode.Uri.joinPath(workspaceFolder.uri, config.path, taskItem.block, testFileName);
-                const testDocument = await vscode.workspace.openTextDocument(testFileUri);
-                await vscode.window.showTextDocument(testDocument, {
-                    viewColumn: vscode.ViewColumn.Two,
-                    preview: false
-                });
-            } catch (error) {
-                vscode.window.showErrorMessage(`Ошибка при открытии файлов: ${error}`);
-                return;
-            }
+            // Пытаемся открыть каждый файл, продолжаем при ошибке
+            await tryOpenFile(taskFileName, vscode.ViewColumn.One, 'условия задачи', workspaceFolder, config);
+            await tryOpenFile(testFileName, vscode.ViewColumn.Two, 'теста', workspaceFolder, config);
         }
 
         // Создаем новый терминал для каждой задачи с уникальным именем, включающим имя блока
