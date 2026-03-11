@@ -13,7 +13,7 @@ export class TestsProvider implements vscode.TreeDataProvider<TestTreeItem> {
         try {
             const config = await readConfig();
             return config.tests.map((test, index) =>
-                new TestTreeItem(test.time, index, test.blocks)
+                new TestTreeItem(test, index)
             );
         } catch {
             return [];
@@ -27,11 +27,11 @@ export class TestsProvider implements vscode.TreeDataProvider<TestTreeItem> {
 
 class TestTreeItem extends vscode.TreeItem {
     constructor(
-        public readonly time: number,
-        public readonly index: number,
-        public readonly blocks: Tests['blocks']
+        public readonly test: Tests,
+        public readonly index: number
     ) {
-        super(`Тест ${index + 1} (${time} сек)`, vscode.TreeItemCollapsibleState.None);
+        const displayTitle = test.title || `Тест ${index + 1}`;
+        super(`${displayTitle} (${test.time} сек)`, vscode.TreeItemCollapsibleState.None);
         this.tooltip = this.getTooltip();
         this.contextValue = 'test';
         this.iconPath = new vscode.ThemeIcon('watch');
@@ -44,10 +44,10 @@ class TestTreeItem extends vscode.TreeItem {
     }
 
     private getTooltip(): string {
-        const blocksInfo = this.blocks.map(block =>
+        const blocksInfo = this.test.blocks.map(block =>
             `${block.block}: ${block.task} задач`
         ).join('\n');
-        return `Тест продолжительностью ${this.time} секунд\nБлоки:\n${blocksInfo}`;
+        return `Тест продолжительностью ${this.test.time} секунд\nБлоки:\n${blocksInfo}`;
     }
 }
 

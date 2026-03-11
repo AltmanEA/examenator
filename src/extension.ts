@@ -39,8 +39,12 @@ export function activate(context: vscode.ExtensionContext) {
             await vscode.commands.executeCommand('workbench.action.closeAllEditors');
             vscode.window.terminals.forEach(terminal => terminal.dispose());
 
+            const test = testItem.test;
+            if (!test) {
+                vscode.window.showErrorMessage('Тест не найден');
+                return;
+            }
             const config = await readConfig();
-            const test = config.tests[testItem.index];
 
             const selectedTasks: SelectedTask[] = [];
 
@@ -91,11 +95,17 @@ export function activate(context: vscode.ExtensionContext) {
             activeTestProvider.setActiveTest(selectedTasks, test.time);
         }),
         vscode.commands.registerCommand('examView.selectBlock', async (blockItem: any) => {
-            const config = await readConfig();
-            const block = config.blocks.find((b: any) => `${b.name} (задач: ${b.tasks ? b.tasks.length : b.task})` === blockItem.label);
-            
+            // blockItem is an instance of BlockTreeItem which has a 'block' property
+            const block = blockItem.block;
             if (!block) {
                 vscode.window.showErrorMessage('Блок не найден');
+                return;
+            }
+            const config = await readConfig();
+            // Ensure block exists in config (optional)
+            const configBlock = config.blocks.find((b: any) => b.name === block.name);
+            if (!configBlock) {
+                vscode.window.showErrorMessage('Блок не найден в конфигурации');
                 return;
             }
 

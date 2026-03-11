@@ -4,6 +4,7 @@ import * as path from 'path';
 
 export type Block = {
   name: string;
+  title?: string; // Отображаемое название блока (если отсутствует, использовать name)
   tasks?: string[]; // Массив имен задач для ручной нумерации
   task?: number; // Количество задач для автоматической нумерации
   template?: string;
@@ -18,6 +19,7 @@ export type Block = {
 };
 export type Tests = {
   time: number;
+  title?: string; // Отображаемое название теста (если отсутствует, использовать "Тест N")
   blocks: {
     block: string;
     task: number;

@@ -4,10 +4,12 @@ All notable changes to the "examenator" extension will be documented in this fil
 
 Check [Keep a Changelog](http://keepachangelog.com/) for recommendations on how to structure this file.
 
-## [0.0.4] - 2026-02-06
+## [0.0.6] - 2026-03-11
 
-### Added
-- Обновление формата config.json
+### Добавлено
+- Поддержка необязательного поля `title` в блоках и тестах конфигурации
+- В интерфейсе отображается `title` вместо `name` (если указан)
+
 ## [0.0.5] - 2026-02-10
 
 ### Добавлено
@@ -15,4 +17,9 @@ Check [Keep a Changelog](http://keepachangelog.com/) for recommendations on how 
 - Улучшения в работе с тестами
 - Исправление ошибок в работе провайдеров данных
 - Удалены команды по редактированию учебного репозитория
+
+## [0.0.4] - 2026-02-06
+
+### Added
+- Обновление формата config.json
 

@@ -1,5 +1,5 @@
 import * as vscode from 'vscode';
-import { readConfig, writeConfig, Config } from './config';
+import { readConfig, writeConfig, Config, Block } from './config';
 
 export class TasksProvider implements vscode.TreeDataProvider<vscode.TreeItem> {
     private _onDidChangeTreeData = new vscode.EventEmitter<vscode.TreeItem | undefined>();
@@ -32,7 +32,7 @@ export class TasksProvider implements vscode.TreeDataProvider<vscode.TreeItem> {
                     // Автоматическая нумерация: количество задач задано числом
                     taskCount = block.task;
                 }
-                return new BlockTreeItem(block.name, taskCount);
+                return new BlockTreeItem(block, taskCount);
             });
         } catch {
             vscode.window.showInformationMessage('Конфигурация не найдена');
@@ -47,11 +47,12 @@ export class TasksProvider implements vscode.TreeDataProvider<vscode.TreeItem> {
 
 class BlockTreeItem extends vscode.TreeItem {
     constructor(
-        public readonly name: string,
+        public readonly block: Block,
         public readonly taskCount: number
     ) {
-        super(`${name} (задач: ${taskCount})`, vscode.TreeItemCollapsibleState.None);
-        this.tooltip = `Block: ${name}, Task Count: ${taskCount}`;
+        const displayName = block.title || block.name;
+        super(`${displayName} (задач: ${taskCount})`, vscode.TreeItemCollapsibleState.None);
+        this.tooltip = `Block: ${block.name}, Task Count: ${taskCount}`;
         this.contextValue = 'block';
         
         this.command = {

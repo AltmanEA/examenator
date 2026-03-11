@@ -3,6 +3,7 @@
     "blocks": [
         {
             "name": "nextjs",
+            "title": "Next.js блок",
             "task": 28,
             "testCommand": "npm run test:e2e",
             "templates": {
@@ -13,6 +14,7 @@
         },
         {
             "name": "drizzle",
+            "title": "Drizzle ORM",
             "task": 28,
             "templates": {
                 "source": "{task}/schema.ts",
@@ -24,6 +26,7 @@
     "tests": [
         {
             "time": 1800,
+            "title": "Первый тест",
             "blocks": [
                 {
                     "block": "nextjs",
@@ -33,6 +36,7 @@
         },
         {
             "time": 1800,
+            "title": "Второй тест (комбинированный)",
             "blocks": [
                 {
                     "block": "nextjs",
