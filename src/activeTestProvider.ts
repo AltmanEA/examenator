@@ -169,12 +169,13 @@ export function openTaskAndTestCommand() {
             viewColumn: vscode.ViewColumn,
             description: string,
             workspaceFolder: vscode.WorkspaceFolder,
-            config: any
+            config: any,
+            preserveFocus?: boolean
         ): Promise<boolean> {
             try {
                 const fileUri = vscode.Uri.joinPath(workspaceFolder.uri, config.path, taskItem.block, fileName);
                 const document = await vscode.workspace.openTextDocument(fileUri);
-                await vscode.window.showTextDocument(document, { viewColumn, preview: false });
+                await vscode.window.showTextDocument(document, { viewColumn, preview: false, preserveFocus });
                 return true;
             } catch (error) {
                 vscode.window.showWarningMessage(`Файл ${description} не найден: ${fileName}. Продолжаем без него.`);
@@ -187,7 +188,7 @@ export function openTaskAndTestCommand() {
         let testFileName = ''; // Объявляем переменную заранее
 
         if (useNewFormat) {
-            // Новый формат - открываем три файла
+            // Новый формат - открываем три файла, но в двух вкладках
             let sourceTemplate = '{task}.ts';
             let taskTemplate = '{task}.ts';
             let testTemplate = '{task}.test.ts';
@@ -212,10 +213,12 @@ export function openTaskAndTestCommand() {
                 .replace('{block}', taskItem.block)
                 .replace(/{task}/g, taskItem.taskId);
 
-            // Пытаемся открыть каждый файл, продолжаем при ошибке
-            await tryOpenFile(taskFileName, vscode.ViewColumn.One, 'условия задачи', workspaceFolder, config);
-            await tryOpenFile(sourceFileName, vscode.ViewColumn.Two, 'исходного кода', workspaceFolder, config);
-            await tryOpenFile(testFileName, vscode.ViewColumn.Three, 'теста', workspaceFolder, config);
+            // Открываем исходный код в первой вкладке
+            await tryOpenFile(sourceFileName, vscode.ViewColumn.One, 'исходного кода', workspaceFolder, config);
+            // Открываем тест во второй вкладке, но без переключения фокуса
+            await tryOpenFile(testFileName, vscode.ViewColumn.Two, 'теста', workspaceFolder, config, true);
+            // Открываем текст задачи также во второй вкладке (активный)
+            await tryOpenFile(taskFileName, vscode.ViewColumn.Two, 'условия задачи', workspaceFolder, config);
         } else {
             // Старый формат - открываем два файла
             let taskTemplate = '{task}.ts';
