@@ -4,6 +4,17 @@ All notable changes to the "examenator" extension will be documented in this fil
 
 Check [Keep a Changelog](http://keepachangelog.com/) for recommendations on how to structure this file.
 
+## [0.0.9] - 2026-09-02
+
+### Исправлено
+
+- Веб-версия (vscode.dev / github.dev): расширение не активировалось с ошибкой «Отсутствует зарегистрированный поставщик данных…» — web extension host не умеет загружать `require('./модуль')` отдельных файлов. Код расширения теперь бандлится esbuild в единый файл `dist/extension.js`, точки входа `main`/`browser` указывают на него
+
+### Изменено
+
+- Сборка расширения переведена с `tsc` на esbuild (`esbuild.config.mjs`); `tsc` используется только для компиляции тестов (`out/`)
+- Новые скрипты: `npm run bundle` (dev-бандл), `npm run watch` (наблюдение), `npm run package` (production-бандл с минификацией)
+
 ## [0.0.8] - 2026-09-02
 
 ### Добавлено

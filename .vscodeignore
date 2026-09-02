@@ -1,6 +1,8 @@
 .vscode/**
 .vscode-test/**
 src/**
+out/**
+esbuild.config.mjs
 .gitignore
 .yarnrc
 vsc-extension-quickstart.md

@@ -3,7 +3,7 @@
   "displayName": "Examenator",
   "description": "Расширение для управления заданиями и тестами",
   "repository": "https://github.com/AltmanEA/examenator",
-  "version": "0.0.8",
+  "version": "0.0.9",
   "publisher": "AltmanEA",
   "engines": {
     "vscode": "^1.105.0"
@@ -14,8 +14,8 @@
   "activationEvents": [
     "onStartupFinished"
   ],
-  "main": "./out/extension.js",
-  "browser": "./out/extension.js",
+  "main": "./dist/extension.js",
+  "browser": "./dist/extension.js",
   "contributes": {
     "commands": [
       {
@@ -54,23 +54,29 @@
       "exam-container": [
         {
           "id": "tasksView",
-          "name": "Задачи"
+          "name": "Задачи",
+          "icon": "./media/tasks.svg"
         },
         {
           "id": "testsView",
-          "name": "Тесты"
+          "name": "Тесты",
+          "icon": "./media/tests.svg"
         },
         {
           "id": "selectedTasksView",
-          "name": "Выбранные задачи"
+          "name": "Выбранные задачи",
+          "icon": "./media/selected-tasks.svg"
         }
       ]
     }
   },
   "scripts": {
-    "vscode:prepublish": "npm run compile",
-    "compile": "tsc -p ./",
-    "watch": "tsc -watch -p ./",
+    "vscode:prepublish": "npm run package",
+    "compile": "npm run compile-tests && npm run bundle",
+    "compile-tests": "tsc -p ./",
+    "bundle": "node esbuild.config.mjs",
+    "watch": "node esbuild.config.mjs --watch",
+    "package": "node esbuild.config.mjs --production",
     "pretest": "npm run compile && npm run lint",
     "lint": "eslint src",
     "test": "vscode-test",
@@ -85,6 +91,7 @@
     "@typescript-eslint/parser": "^8.45.0",
     "@vscode/test-cli": "^0.0.11",
     "@vscode/test-electron": "^2.5.2",
+    "esbuild": "^0.28.2",
     "eslint": "^9.36.0",
     "sinon": "^21.0.0",
     "typescript": "^5.9.3"

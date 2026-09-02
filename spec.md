@@ -143,7 +143,7 @@ type Tests = {
 #### Технические детали
 - Чтение/запись файлов выполняется только через `vscode.workspace.fs` и `vscode.Uri.joinPath` (без Node-модулей `fs/promises` и `path`)
 - Кодирование/декодирование текста — через `TextEncoder`/`TextDecoder`
-- Точка входа для веб-режима задана полем `browser` в манифесте (`./out/extension.js`, та же сборка, что и для десктопа)
+- Точка входа для веб-режима задана полем `browser` в манифесте (`./dist/extension.js`, единый бандл esbuild — web extension host не резолвит `require` отдельных файлов)
 
 ## Поток выполнения
 

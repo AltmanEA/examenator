@@ -12,8 +12,9 @@
 
 ### Технологии
 
-- **TypeScript** (strict mode, target ES2022, module Node16), компиляция через `tsc`.
-- **VS Code Extension API** (`@types/vscode` ^1.105.0, точка входа `./out/extension.js`).
+- **TypeScript** (strict mode, target ES2022, module Node16), компиляция тестов через `tsc`.
+- **Сборка**: esbuild — расширение бандлится в единый файл `dist/extension.js` (обязательно для веб-версии: web extension host не резолвит `require` отдельных файлов).
+- **VS Code Extension API** (`@types/vscode` ^1.105.0, точки входа `main`/`browser`: `./dist/extension.js`).
 - **Тестирование**: `@vscode/test-cli` + `@vscode/test-electron` (Mocha-стиль `suite`/`test`), моки через **sinon**.
 - **Линтинг**: ESLint 9 (flat config, `eslint.config.mjs`).
 - **Упаковка**: `vsce package`.
@@ -29,9 +30,11 @@
 │   ├── testProvider.ts        # TreeView «Тесты» (список тестов)
 │   ├── activeTestProvider.ts  # TreeView «Выбранные задачи», таймер, команды открытия задач
 │   └── test/                  # Интеграционные/юнит-тесты (Mocha + sinon)
+├── dist/                      # Бандл расширения (esbuild → extension.js)
 ├── config.json                # Пример конфигурации блоков и тестов
 ├── spec.md                    # Спецификация расширения (архитектура, поток выполнения)
 ├── package.json               # Манифест расширения: команды, viewsContainers, views
+├── esbuild.config.mjs         # Конфигурация сборки бандла (dev/production/watch)
 ├── tsconfig.json              # strict TS, outDir=out, rootDir=src
 ├── eslint.config.mjs          # Flat config ESLint
 └── .vscode-test.mjs           # Конфигурация тест-раннера (out/test/**/*.test.js)
@@ -62,8 +65,9 @@
 ```bash
 npm install            # установка зависимостей
 
-npm run compile        # компиляция TypeScript (tsc -p ./) → out/
-npm run watch          # компиляция в режиме наблюдения
+npm run compile        # тесты (tsc -p ./ → out/) + бандл расширения (esbuild → dist/)
+npm run watch          # сборка бандла в режиме наблюдения
+npm run package        # production-сборка бандла (минификация)
 
 npm run lint           # ESLint по src/
 npm test               # vscode-test (перед тестами автоматически compile + lint)
