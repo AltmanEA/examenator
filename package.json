@@ -3,7 +3,7 @@
   "displayName": "Examenator",
   "description": "Расширение для управления заданиями и тестами",
   "repository": "https://github.com/AltmanEA/examenator",
-  "version": "0.0.7",
+  "version": "0.0.8",
   "publisher": "AltmanEA",
   "engines": {
     "vscode": "^1.105.0"

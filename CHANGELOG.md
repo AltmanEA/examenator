@@ -4,7 +4,7 @@ All notable changes to the "examenator" extension will be documented in this fil
 
 Check [Keep a Changelog](http://keepachangelog.com/) for recommendations on how to structure this file.
 
-## [0.0.7] - 2026-09-02
+## [0.0.8] - 2026-09-02
 
 ### Добавлено
 - Поддержка Web Extensions: расширение можно устанавливать и запускать в vscode.dev и github.dev
