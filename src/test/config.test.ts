@@ -2,7 +2,7 @@ import * as assert from 'assert';
 import * as sinon from 'sinon';
 import * as fs from 'fs/promises';
 import * as vscode from 'vscode';
-import { Config, readConfig, writeConfig, createDefaultConfig } from '../config';
+import { readConfig, writeConfig, createDefaultConfig } from '../config';
 
 suite('Config Tests', () => {
     let sandbox: sinon.SinonSandbox;
@@ -25,7 +25,7 @@ suite('Config Tests', () => {
     test('Config constructor sets properties correctly', () => {
         const blocks = [{ name: 'testBlock' }];
         const tests = [{ time: 600, blocks: [{ block: 'testBlock', task: 1 }] }];
-        const config = new Config(blocks, tests, 'testPath');
+        const config = { blocks, tests, path: 'testPath' };
         
         assert.deepStrictEqual(config.blocks, blocks);
         assert.deepStrictEqual(config.tests, tests);
@@ -41,7 +41,7 @@ suite('Config Tests', () => {
 
     test('writeConfig throws error when no workspace', async () => {
         sandbox.stub(vscode.workspace, 'workspaceFolders').value(undefined);
-        const config = new Config();
+        const config = { blocks: [], tests: [], path: 'src' };
         await assert.rejects(writeConfig(config), /No workspace opened/);
     });
 });

@@ -1,5 +1,5 @@
 import * as vscode from 'vscode';
-import { readConfig, writeConfig, Config, Block } from './config';
+import { readConfig, Block } from './config';
 
 export class TasksProvider implements vscode.TreeDataProvider<vscode.TreeItem> {
     private _onDidChangeTreeData = new vscode.EventEmitter<vscode.TreeItem | undefined>();
@@ -52,7 +52,7 @@ class BlockTreeItem extends vscode.TreeItem {
     ) {
         const displayName = block.title || block.name;
         super(`${displayName} (задач: ${taskCount})`, vscode.TreeItemCollapsibleState.None);
-        this.tooltip = `Block: ${block.name}, Task Count: ${taskCount}`;
+        this.tooltip = `Блок: ${block.name}, Количество задач: ${taskCount}`;
         this.contextValue = 'block';
         
         this.command = {

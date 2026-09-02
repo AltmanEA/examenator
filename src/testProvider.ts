@@ -1,5 +1,5 @@
 import * as vscode from 'vscode';
-import { readConfig, Tests, writeConfig } from './config';
+import { readConfig, Tests } from './config';
 
 export class TestsProvider implements vscode.TreeDataProvider<TestTreeItem> {
     private _onDidChangeTreeData = new vscode.EventEmitter<TestTreeItem | undefined>();

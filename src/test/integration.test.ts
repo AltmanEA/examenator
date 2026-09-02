@@ -1,7 +1,7 @@
 import * as assert from 'assert';
 import * as vscode from 'vscode';
 import * as sinon from 'sinon';
-import { readConfig, writeConfig, Config } from '../config';
+import { readConfig, writeConfig } from '../config';
 import { TasksProvider } from '../taskProvider';
 import { TestsProvider } from '../testProvider';
 
@@ -27,10 +27,14 @@ suite('Integration Tests', () => {
     });
 
     test('TasksProvider shows blocks from config', async () => {
-        const testConfig = new Config([
-            { name: 'block1', tasks: ['task1', 'task2'] },
-            { name: 'block2', tasks: ['task1', 'task2', 'task3'] }
-        ]);
+        const testConfig = {
+            blocks: [
+                { name: 'block1', tasks: ['task1', 'task2'] },
+                { name: 'block2', tasks: ['task1', 'task2', 'task3'] }
+            ],
+            tests: [],
+            path: 'src'
+        };
         
         sandbox.stub(require('../config'), 'readConfig').resolves(testConfig);
         
@@ -43,10 +47,14 @@ suite('Integration Tests', () => {
     });
 
     test('TestsProvider shows tests from config', async () => {
-        const testConfig = new Config([], [
-            { time: 600, blocks: [{ block: 'block1', task: 2 }] },
-            { time: 300, blocks: [{ block: 'block2', task: 1 }] }
-        ]);
+        const testConfig = {
+            blocks: [],
+            tests: [
+                { time: 600, blocks: [{ block: 'block1', task: 2 }] },
+                { time: 300, blocks: [{ block: 'block2', task: 1 }] }
+            ],
+            path: 'src'
+        };
         
         sandbox.stub(require('../config'), 'readConfig').resolves(testConfig);
         

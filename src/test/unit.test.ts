@@ -70,29 +70,25 @@ suite('ActiveTestProvider Additional Tests', () => {
 
     test('updateStatusBar changes color based on time', () => {
         const provider: any = new ActiveTestProvider();
-        provider.timeLeft = 600; // 10 минут
         provider.totalTime = 600;
         provider.warningTime = 180; // 30%
         provider.alertTime = 60;   // 10%
         provider.statusBarItem = { text: '', color: undefined, backgroundColor: undefined };
         
         // Нормальное время
-        provider.updateStatusBar();
+        provider.updateStatusBar(600);
         assert.strictEqual(provider.statusBarItem.text, '$(watch) 10:00');
         
         // Время предупреждения
-        provider.timeLeft = 179;
-        provider.updateStatusBar();
+        provider.updateStatusBar(179);
         // Проверяем, что цвет изменился на warning
         
         // Время тревоги
-        provider.timeLeft = 59;
-        provider.updateStatusBar();
+        provider.updateStatusBar(59);
         // Проверяем, что цвет изменился на error
         
         // Время истекло
-        provider.timeLeft = 0;
-        provider.updateStatusBar();
+        provider.updateStatusBar(0);
         assert.strictEqual(provider.statusBarItem.text, '$(error) Время вышло!');
     });
 });

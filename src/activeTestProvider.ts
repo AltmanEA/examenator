@@ -1,24 +1,30 @@
 import * as vscode from 'vscode';
-import { readConfig } from './config';
+import { readConfig, SelectedTask } from './config';
+import { collectTasksFromBlock, shuffle } from './taskSelector';
 
 // Проверяем, работает ли расширение в веб-версии (vscode.dev / github.dev)
 function isWeb(): boolean {
     return vscode.env.uiKind === vscode.UIKind.Web;
 }
 
-export type SelectedTask = {
-    block: string;
-    taskId: string; // Идентификатор задачи вместо номера
-    name: string;
-    template?: string;
-    testTemplate?: string;
-    // Новый формат для задания трех файлов
-    templates?: {
-        source?: string;
-        task?: string;
-        test?: string;
-    };
-};
+// Сброс репозитория к последнему коммиту через терминал (только десктоп)
+async function resetRepositoryToHead(): Promise<void> {
+    if (isWeb()) {
+        vscode.window.showWarningMessage('Сброс репозитория недоступен в веб-версии');
+        return;
+    }
+    try {
+        const terminal = vscode.window.createTerminal('Git Reset');
+        terminal.show();
+        terminal.sendText('git reset --hard HEAD');
+        terminal.sendText('echo "Репозиторий сброшен к последнему коммиту"');
+        await new Promise(resolve => setTimeout(resolve, 2000));
+        terminal.dispose();
+        vscode.window.showInformationMessage('Репозиторий сброшен к последнему коммиту');
+    } catch (error) {
+        vscode.window.showErrorMessage(`Ошибка при сбросе репозитория: ${error}`);
+    }
+}
 
 export class ActiveTestProvider implements vscode.TreeDataProvider<vscode.TreeItem> {
     private _onDidChangeTreeData = new vscode.EventEmitter<vscode.TreeItem | undefined>();
@@ -26,7 +32,7 @@ export class ActiveTestProvider implements vscode.TreeDataProvider<vscode.TreeIt
 
     private tasks: SelectedTask[] = [];
     private timer: ReturnType<typeof setInterval> | null = null;
-    private timeLeft: number = 0;
+    private endTime: number = 0; // Timestamp окончания теста (мс)
     private totalTime: number = 0;
     private statusBarItem: vscode.StatusBarItem;
     private warningTime: number = 0;
@@ -39,7 +45,7 @@ export class ActiveTestProvider implements vscode.TreeDataProvider<vscode.TreeIt
     setActiveTest(tasks: SelectedTask[], testTime: number): void {
         this.tasks = tasks;
         this.totalTime = testTime;
-        this.timeLeft = testTime;
+        this.endTime = Date.now() + testTime * 1000;
         this.warningTime = Math.floor(testTime * 0.3); // 30% от времени
         this.alertTime = Math.floor(testTime * 0.1);   // 10% от времени
 
@@ -64,17 +70,20 @@ export class ActiveTestProvider implements vscode.TreeDataProvider<vscode.TreeIt
 
     private startTimer(): void {
         this.stopTimer();
-        this.updateStatusBar();
+        const timeLeft = Math.max(0, Math.floor((this.endTime - Date.now()) / 1000));
+        this.updateStatusBar(timeLeft);
 
         this.timer = setInterval(() => {
-            this.timeLeft--;
-            this.updateStatusBar();
+            const remainingMs = this.endTime - Date.now();
+            const timeLeft = Math.max(0, Math.floor(remainingMs / 1000));
 
-            if (this.timeLeft <= 0) {
+            this.updateStatusBar(timeLeft);
+
+            if (timeLeft <= 0) {
                 this.stopTimer();
                 vscode.window.showWarningMessage('Время вышло!');
             }
-        }, 1000);
+        }, 250);
     }
 
     private stopTimer(): void {
@@ -84,20 +93,20 @@ export class ActiveTestProvider implements vscode.TreeDataProvider<vscode.TreeIt
         }
     }
 
-    private updateStatusBar(): void {
-        const minutes = Math.floor(this.timeLeft / 60);
-        const seconds = this.timeLeft % 60;
+    private updateStatusBar(timeLeft: number): void {
+        const minutes = Math.floor(timeLeft / 60);
+        const seconds = timeLeft % 60;
         const timeString = `${minutes}:${seconds.toString().padStart(2, '0')}`;
 
-        if (this.timeLeft <= 0) {
+        if (timeLeft <= 0) {
             this.statusBarItem.text = `$(error) Время вышло!`;
             this.statusBarItem.color = new vscode.ThemeColor('errorForeground');
             this.statusBarItem.backgroundColor = new vscode.ThemeColor('statusBarItem.errorBackground');
-        } else if (this.timeLeft <= this.alertTime) {
+        } else if (timeLeft <= this.alertTime) {
             this.statusBarItem.text = `$(warning) ${timeString}`;
             this.statusBarItem.color = new vscode.ThemeColor('errorForeground');
             this.statusBarItem.backgroundColor = new vscode.ThemeColor('statusBarItem.errorBackground');
-        } else if (this.timeLeft <= this.warningTime) {
+        } else if (timeLeft <= this.warningTime) {
             this.statusBarItem.text = `$(watch) ${timeString}`;
             this.statusBarItem.color = new vscode.ThemeColor('warningForeground');
             this.statusBarItem.backgroundColor = new vscode.ThemeColor('statusBarItem.warningBackground');
@@ -306,63 +315,14 @@ export function runTestCommand(activeTestProvider: ActiveTestProvider) {
             for (const blockName of blockNames) {
                 const block = config.blocks.find(b => b.name === blockName);
                 if (block) {
-                    // Проверяем, какой формат используется
-                    if (block.tasks && block.tasks.length > 0) {
-                        // Ручная нумерация: используем массив имен задач
-                        for (const taskName of block.tasks) {
-                            allAvailableTasks.push({
-                                block: blockName,
-                                taskId: taskName,
-                                name: taskName,
-                                template: block.template,
-                                testTemplate: block.testTemplate,
-                                templates: block.templates
-                            });
-                        }
-                    } else if (block.task !== undefined && block.task > 0) {
-                        // Автоматическая нумерация: генерируем имена задач от 1 до block.task
-                        for (let i = 1; i <= block.task; i++) {
-                            const taskName = blockName+(i < 10 ? '0' + i : i.toString());
-                            allAvailableTasks.push({
-                                block: blockName,
-                                taskId: taskName,
-                                name: taskName,
-                                template: block.template,
-                                testTemplate: block.testTemplate,
-                                templates: block.templates
-                            });
-                        }
-                    }
+                    allAvailableTasks.push(...collectTasksFromBlock(block));
                 }
             }
 
-            const shuffled = [...allAvailableTasks].sort(() => 0.5 - Math.random());
-            const selected = shuffled.slice(0, Math.min(totalTasksNeeded, shuffled.length));
+            const selected = shuffle(allAvailableTasks).slice(0, Math.min(totalTasksNeeded, allAvailableTasks.length));
             selectedTasks.push(...selected);
         }
 
         activeTestProvider.setActiveTest(selectedTasks, test.time);
     });
-}
-
-// Вынесем логику сброса в отдельную функцию
-async function resetRepositoryToHead(): Promise<void> {
-    if (isWeb()) {
-        vscode.window.showWarningMessage('Сброс репозитория недоступен в веб-версии');
-        return;
-    }
-    const terminal = vscode.window.createTerminal('Git Reset');
-    terminal.show();
-    
-    // Выполняем команду сброса
-    terminal.sendText('git reset --hard HEAD');
-    terminal.sendText('echo "Репозиторий сброшен к последнему коммиту"');
-    
-    // Ждем немного для выполнения команды
-    await new Promise(resolve => setTimeout(resolve, 2000));
-    
-    // Закрываем терминал
-    terminal.dispose();
-    
-    vscode.window.showInformationMessage('Репозиторий сброшен к последнему коммиту');
 }

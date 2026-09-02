@@ -25,32 +25,48 @@ export type Tests = {
 };
 
 
-export class Config {
-  blocks: Block[];
-  tests: Tests[];  
-  path: string;
+export type SelectedTask = {
+    block: string;
+    taskId: string; // Идентификатор задачи вместо номера
+    name: string;
+    template?: string;
+    testTemplate?: string;
+    // Новый формат для задания трех файлов
+    templates?: {
+        source?: string;
+        task?: string;
+        test?: string;
+    };
+};
 
-  constructor(blocks: Block[] = [], tests: Tests[] = [], path: string = 'src') {
-    this.blocks = blocks;
-    this.tests = tests;
-    this.path = path;
-  }
-}
+export type Config = {
+  blocks: Block[];
+  tests: Tests[];
+  path: string;
+};
 
 const CONFIG_FILE = 'config.json';
 
 export async function readConfig(): Promise<Config> {
     const workspaceFolder = vscode.workspace.workspaceFolders?.[0];
     if (!workspaceFolder) {
-        return new Config();
+        return createDefaultConfig();
     }
 
     const configUri = vscode.Uri.joinPath(workspaceFolder.uri, CONFIG_FILE);
 
     try {
         const data = await vscode.workspace.fs.readFile(configUri);
-        const json = JSON.parse(new TextDecoder('utf-8').decode(data));
-        return new Config(json.blocks || [], json.tests || [], json.path);
+        let json: { blocks?: Block[]; tests?: Tests[]; path?: string };
+        try {
+            json = JSON.parse(new TextDecoder('utf-8').decode(data));
+        } catch (parseError) {
+            vscode.window.showErrorMessage(
+                'Ошибка при разборе config.json: невалидный JSON. Проверьте синтаксис файла в корне рабочей области.'
+            );
+            return createDefaultConfig();
+        }
+        return { blocks: json.blocks || [], tests: json.tests || [], path: json.path || 'src' };
     } catch {
         return createDefaultConfig();
     }
@@ -68,5 +84,5 @@ export async function writeConfig(config: Config): Promise<void> {
 }
 
 export function createDefaultConfig(): Config {
-    return new Config([], [], 'src');
+    return { blocks: [], tests: [], path: 'src' };
 }

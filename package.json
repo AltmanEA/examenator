@@ -23,10 +23,6 @@
         "title": "Запустить тест"
       },
       {
-        "command": "examView.openTest",
-        "title": "Открыть тестовый файл"
-      },
-      {
         "command": "examView.openTaskAndTest",
         "title": "Открыть задачу и тест"
       }
