@@ -39,7 +39,7 @@
 
 ### Архитектура
 
-1. **Extension** (`src/extension.ts`) — активация, создание трёх TreeView и регистрация команд `examView.selectTest`, `examView.selectBlock`.
+1. **Extension** (`src/extension.ts`) — активация, создание трёх TreeView и регистрация команд `examView.runTest`, `examView.selectBlock`.
 2. **Config** (`src/config.ts`) — чтение `config.json` из корня рабочей области; при отсутствии файла создаётся конфигурация по умолчанию.
 3. **Providers**:
    - `TasksProvider` — блоки задач (ручная нумерация через `tasks: string[]` или автоматическая через `task: number`).
@@ -54,7 +54,7 @@
 | `examView.runTest` | Запустить тест |
 | `examView.openTest` | Открыть тестовый файл |
 | `examView.openTaskAndTest` | Открыть задачу и тест |
-| `examView.selectTest` (внутренняя) | Сброс репозитория, случайный выбор задач, запуск таймера |
+| `examView.runTest` | Сброс репозитория, случайный выбор задач, запуск таймера (вызывается при клике на тест в интерфейсе) |
 | `examView.selectBlock` (внутренняя) | Выбрать все задачи блока |
 
 ## Сборка, запуск и тестирование

@@ -25,10 +25,21 @@
       {
         "command": "examView.openTaskAndTest",
         "title": "Открыть задачу и тест"
+      },
+      {
+        "command": "examView.selectBlock",
+        "title": "Выбрать блок задач"
       }
     ],
     "menus": {
-      "view/title": []
+      "view/title": [],
+      "view/item/context": [
+        {
+          "command": "examView.runTest",
+          "when": "view == testsView && viewItem == test",
+          "group": "inline"
+        }
+      ]
     },
     "viewsContainers": {
       "activitybar": [
