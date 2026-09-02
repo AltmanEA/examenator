@@ -5,6 +5,30 @@ import { TasksProvider } from './taskProvider';
 import { TestsProvider } from './testProvider';
 import { SelectedTask } from './activeTestProvider';
 
+// Проверяем, работает ли расширение в веб-версии (vscode.dev / github.dev)
+function isWeb(): boolean {
+    return vscode.env.uiKind === vscode.UIKind.Web;
+}
+
+// Сброс репозитория к последнему коммиту через терминал (только десктоп)
+async function resetRepositoryToHead(): Promise<void> {
+    if (isWeb()) {
+        vscode.window.showWarningMessage('Сброс репозитория недоступен в веб-версии');
+        return;
+    }
+    try {
+        const terminal = vscode.window.createTerminal('Git Reset');
+        terminal.show();
+        terminal.sendText('git reset --hard HEAD');
+        terminal.sendText('echo "Репозиторий сброшен к последнему коммиту"');
+        await new Promise(resolve => setTimeout(resolve, 2000));
+        terminal.dispose();
+        vscode.window.showInformationMessage('Репозиторий сброшен к последнему коммиту');
+    } catch (error) {
+        vscode.window.showErrorMessage(`Ошибка при сбросе репозитория: ${error}`);
+    }
+}
+
 export function activate(context: vscode.ExtensionContext) {
     const tasksProvider = new TasksProvider();
     const testsProvider = new TestsProvider();
@@ -24,20 +48,14 @@ export function activate(context: vscode.ExtensionContext) {
         openTaskAndTestCommand(),
         vscode.commands.registerCommand('examView.selectTest', async (testItem: any) => {
             // Сбрасываем репозиторий к последнему коммиту перед запуском теста
-            try {
-                const terminal = vscode.window.createTerminal('Git Reset');
-                terminal.show();
-                terminal.sendText('git reset --hard HEAD');
-                terminal.sendText('echo "Репозиторий сброшен к последнему коммиту"');
-                await new Promise(resolve => setTimeout(resolve, 2000));
-                terminal.dispose();
-                vscode.window.showInformationMessage('Репозиторий сброшен к последнему коммиту');
-            } catch (error) {
-                vscode.window.showErrorMessage(`Ошибка при сбросе репозитория: ${error}`);
+            await resetRepositoryToHead();
+
+            // В веб-версии терминалы недоступны
+            if (!isWeb()) {
+                vscode.window.terminals.forEach(terminal => terminal.dispose());
             }
 
             await vscode.commands.executeCommand('workbench.action.closeAllEditors');
-            vscode.window.terminals.forEach(terminal => terminal.dispose());
 
             const test = testItem.test;
             if (!test) {

@@ -1,6 +1,4 @@
 import * as vscode from 'vscode';
-import * as fs from 'fs/promises';
-import * as path from 'path';
 
 export type Block = {
   name: string;
@@ -47,11 +45,11 @@ export async function readConfig(): Promise<Config> {
         return new Config();
     }
 
-    const configPath = path.join(workspaceFolder.uri.fsPath, CONFIG_FILE);
-    
+    const configUri = vscode.Uri.joinPath(workspaceFolder.uri, CONFIG_FILE);
+
     try {
-        const data = await fs.readFile(configPath, 'utf-8');
-        const json = JSON.parse(data);
+        const data = await vscode.workspace.fs.readFile(configUri);
+        const json = JSON.parse(new TextDecoder('utf-8').decode(data));
         return new Config(json.blocks || [], json.tests || [], json.path);
     } catch {
         return createDefaultConfig();
@@ -64,8 +62,9 @@ export async function writeConfig(config: Config): Promise<void> {
         throw new Error('No workspace opened');
     }
 
-    const configPath = path.join(workspaceFolder.uri.fsPath, CONFIG_FILE);
-    await fs.writeFile(configPath, JSON.stringify(config, null, 2));
+    const configUri = vscode.Uri.joinPath(workspaceFolder.uri, CONFIG_FILE);
+    const content = new TextEncoder().encode(JSON.stringify(config, null, 2));
+    await vscode.workspace.fs.writeFile(configUri, content);
 }
 
 export function createDefaultConfig(): Config {

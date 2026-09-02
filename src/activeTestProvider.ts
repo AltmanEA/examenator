@@ -1,6 +1,11 @@
 import * as vscode from 'vscode';
 import { readConfig } from './config';
 
+// Проверяем, работает ли расширение в веб-версии (vscode.dev / github.dev)
+function isWeb(): boolean {
+    return vscode.env.uiKind === vscode.UIKind.Web;
+}
+
 export type SelectedTask = {
     block: string;
     taskId: string; // Идентификатор задачи вместо номера
@@ -20,7 +25,7 @@ export class ActiveTestProvider implements vscode.TreeDataProvider<vscode.TreeIt
     readonly onDidChangeTreeData = this._onDidChangeTreeData.event;
 
     private tasks: SelectedTask[] = [];
-    private timer: NodeJS.Timeout | null = null;
+    private timer: ReturnType<typeof setInterval> | null = null;
     private timeLeft: number = 0;
     private totalTime: number = 0;
     private statusBarItem: vscode.StatusBarItem;
@@ -155,9 +160,12 @@ class TaskTreeItem extends vscode.TreeItem {
 
 export function openTaskAndTestCommand() {
     return vscode.commands.registerCommand('examView.openTaskAndTest', async (taskItem: TaskTreeItem) => {
-        // Закрываем все открытые редакторы и терминалы перед открытием новых
+        // Закрываем все открытые редакторы перед открытием новых
         await vscode.commands.executeCommand('workbench.action.closeAllEditors');
-        vscode.window.terminals.forEach(terminal => terminal.dispose());
+        // В веб-версии терминалы недоступны
+        if (!isWeb()) {
+            vscode.window.terminals.forEach(terminal => terminal.dispose());
+        }
         
         const workspaceFolder = vscode.workspace.workspaceFolders?.[0];
         if (!workspaceFolder) { return; }
@@ -246,6 +254,12 @@ export function openTaskAndTestCommand() {
             await tryOpenFile(testFileName, vscode.ViewColumn.Two, 'теста', workspaceFolder, config);
         }
 
+        // Создаем терминал для запуска тестов (только десктоп-версия)
+        if (isWeb()) {
+            vscode.window.showWarningMessage('Запуск тестов в терминале недоступен в веб-версии');
+            return;
+        }
+
         // Создаем новый терминал для каждой задачи с уникальным именем, включающим имя блока
         const terminalName = `Тест: ${taskItem.name} (${taskItem.block})`;
         let terminal = vscode.window.terminals.find(
@@ -269,15 +283,14 @@ export function openTaskAndTestCommand() {
 export function runTestCommand(activeTestProvider: ActiveTestProvider) {
     return vscode.commands.registerCommand('examView.runTest', async (testItem: any) => {
         // Сбрасываем репозиторий к последнему коммиту перед запуском теста
-        try {
-            await resetRepositoryToHead();
-        } catch (error) {
-            vscode.window.showErrorMessage(`Ошибка при сбросе репозитория: ${error}`);
+        await resetRepositoryToHead();
+
+        // В веб-версии терминалы недоступны
+        if (!isWeb()) {
+            vscode.window.terminals.forEach(terminal => terminal.dispose());
         }
 
-        // Остальная логика без изменений
         await vscode.commands.executeCommand('workbench.action.closeAllEditors');
-        vscode.window.terminals.forEach(terminal => terminal.dispose());
 
         const config = await readConfig();
         const test = config.tests[testItem.index];
@@ -334,6 +347,10 @@ export function runTestCommand(activeTestProvider: ActiveTestProvider) {
 
 // Вынесем логику сброса в отдельную функцию
 async function resetRepositoryToHead(): Promise<void> {
+    if (isWeb()) {
+        vscode.window.showWarningMessage('Сброс репозитория недоступен в веб-версии');
+        return;
+    }
     const terminal = vscode.window.createTerminal('Git Reset');
     terminal.show();
     

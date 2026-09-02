@@ -4,6 +4,16 @@ All notable changes to the "examenator" extension will be documented in this fil
 
 Check [Keep a Changelog](http://keepachangelog.com/) for recommendations on how to structure this file.
 
+## [0.0.7] - 2026-09-02
+
+### Добавлено
+- Поддержка Web Extensions: расширение можно устанавливать и запускать в vscode.dev и github.dev
+- Чтение и запись `config.json` переведены на `vscode.workspace.fs` (работает и на десктопе, и в вебе)
+
+### Изменено
+- В веб-режиме терминалы и сброс репозитория (`git reset --hard HEAD`) недоступны — вместо этого показывается предупреждение «недоступно в веб-версии»
+- Точка входа для веб-режима задана полем `browser` в манифесте
+
 ## [0.0.6] - 2026-03-11
 
 ### Добавлено
