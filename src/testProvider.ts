@@ -39,7 +39,7 @@ class TestTreeItem extends vscode.TreeItem {
         this.command = {
             command: 'examView.selectTest',
             title: 'Выбрать тест',
-            arguments: [this]
+            arguments: [index]
         };
     }
 

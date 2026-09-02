@@ -50,16 +50,9 @@ export function activate(context: vscode.ExtensionContext) {
     const commands = [
         openTaskAndTestCommand(),
         runTestCommand(activeTestProvider),
-        vscode.commands.registerCommand('examView.selectBlock', async (blockItem: vscode.TreeItem) => {
-            // blockItem is an instance of BlockTreeItem which has a 'block' property
-            const block = (blockItem as any).block;
-            if (!block) {
-                vscode.window.showErrorMessage('Блок не найден');
-                return;
-            }
+        vscode.commands.registerCommand('examView.selectBlock', async (blockName: string) => {
             const config = await readConfig();
-            // Ensure block exists in config (optional)
-            const configBlock = config.blocks.find((b: Block) => b.name === block.name);
+            const configBlock = config.blocks.find((b: Block) => b.name === blockName);
             if (!configBlock) {
                 vscode.window.showErrorMessage('Блок не найден в конфигурации');
                 return;

@@ -162,13 +162,24 @@ class TaskTreeItem extends vscode.TreeItem {
         this.command = {
             command: 'examView.openTaskAndTest',
             title: 'Открыть задачу и тест',
-            arguments: [this]
+            arguments: [this.name, this.block, this.taskId, this.template, this.testTemplate, this.templates]
         };
     }
 }
 
 export function openTaskAndTestCommand() {
-    return vscode.commands.registerCommand('examView.openTaskAndTest', async (taskItem: TaskTreeItem) => {
+    return vscode.commands.registerCommand('examView.openTaskAndTest', async (
+        name: string,
+        block: string,
+        taskId: string,
+        template?: string,
+        testTemplate?: string,
+        templates?: {
+            source?: string;
+            task?: string;
+            test?: string;
+        }
+    ) => {
         // Закрываем все открытые редакторы перед открытием новых
         await vscode.commands.executeCommand('workbench.action.closeAllEditors');
         // В веб-версии терминалы недоступны
@@ -190,7 +201,7 @@ export function openTaskAndTestCommand() {
             preserveFocus?: boolean
         ): Promise<boolean> {
             try {
-                const fileUri = vscode.Uri.joinPath(workspaceFolder.uri, config.path, taskItem.block, fileName);
+                const fileUri = vscode.Uri.joinPath(workspaceFolder.uri, config.path, block, fileName);
                 const document = await vscode.workspace.openTextDocument(fileUri);
                 await vscode.window.showTextDocument(document, { viewColumn, preview: false, preserveFocus });
                 return true;
@@ -201,8 +212,8 @@ export function openTaskAndTestCommand() {
         }
 
         // Проверяем, используется ли новый формат
-        const useNewFormat = !!taskItem.templates;
-        let testFileName = ''; // Объявляем переменную заранее
+        const useNewFormat = !!templates;
+        let testFileName = '';
 
         if (useNewFormat) {
             // Новый формат - открываем три файла, но в двух вкладках
@@ -211,24 +222,24 @@ export function openTaskAndTestCommand() {
             let testTemplate = '{task}.test.ts';
 
             // Используем новый формат
-            if (taskItem.templates) {
-                sourceTemplate = taskItem.templates.source || sourceTemplate;
-                taskTemplate = taskItem.templates.task || taskTemplate;
-                testTemplate = taskItem.templates.test || testTemplate;
+            if (templates) {
+                sourceTemplate = templates.source || sourceTemplate;
+                taskTemplate = templates.task || taskTemplate;
+                testTemplate = templates.test || testTemplate;
             }
 
             // Генерируем имена файлов по шаблонам
             const sourceFileName = sourceTemplate
-                .replace('{block}', taskItem.block)
-                .replace(/{task}/g, taskItem.taskId);
+                .replace('{block}', block)
+                .replace(/{task}/g, taskId);
 
             const taskFileName = taskTemplate
-                .replace('{block}', taskItem.block)
-                .replace(/{task}/g, taskItem.taskId);
+                .replace('{block}', block)
+                .replace(/{task}/g, taskId);
 
             testFileName = testTemplate
-                .replace('{block}', taskItem.block)
-                .replace(/{task}/g, taskItem.taskId);
+                .replace('{block}', block)
+                .replace(/{task}/g, taskId);
 
             // Открываем исходный код в первой вкладке
             await tryOpenFile(sourceFileName, vscode.ViewColumn.One, 'исходного кода', workspaceFolder, config);
@@ -242,21 +253,21 @@ export function openTaskAndTestCommand() {
             let testTemplate = '{task}.test.ts';
 
             // Используем старый формат как fallback
-            if (taskItem.template) {
-                taskTemplate = taskItem.template;
+            if (template) {
+                taskTemplate = template;
             }
-            if (taskItem.testTemplate) {
-                testTemplate = taskItem.testTemplate;
+            if (testTemplate) {
+                testTemplate = testTemplate;
             }
 
             // Генерируем имена файлов по шаблонам
             const taskFileName = taskTemplate
-                .replace('{block}', taskItem.block)
-                .replace(/{task}/g, taskItem.taskId);
+                .replace('{block}', block)
+                .replace(/{task}/g, taskId);
 
             testFileName = testTemplate
-                .replace('{block}', taskItem.block)
-                .replace(/{task}/g, taskItem.taskId);
+                .replace('{block}', block)
+                .replace(/{task}/g, taskId);
 
             // Пытаемся открыть каждый файл, продолжаем при ошибке
             await tryOpenFile(taskFileName, vscode.ViewColumn.One, 'условия задачи', workspaceFolder, config);
@@ -270,7 +281,7 @@ export function openTaskAndTestCommand() {
         }
 
         // Создаем новый терминал для каждой задачи с уникальным именем, включающим имя блока
-        const terminalName = `Тест: ${taskItem.name} (${taskItem.block})`;
+        const terminalName = `Тест: ${name} (${block})`;
         let terminal = vscode.window.terminals.find(
             t => t.name === terminalName);
         if (!terminal) {
@@ -279,8 +290,8 @@ export function openTaskAndTestCommand() {
             const testName = testFileName.replace(/\.tsx$|\.ts$|\.js$/, '');
             
             // Получаем команду для запуска тестов из конфигурации блока или используем по умолчанию
-            const block = config.blocks.find(b => b.name === taskItem.block);
-            const testCommand = block?.testCommand || 'npm run test';
+            const blockConfig = config.blocks.find(b => b.name === block);
+            const testCommand = blockConfig?.testCommand || 'npm run test';
             
             terminal.sendText(`${testCommand} ${testName}`);
         }
@@ -290,7 +301,7 @@ export function openTaskAndTestCommand() {
 }
 
 export function runTestCommand(activeTestProvider: ActiveTestProvider) {
-    return vscode.commands.registerCommand('examView.runTest', async (testItem: any) => {
+    return vscode.commands.registerCommand('examView.runTest', async (testIndex: number) => {
         // Сбрасываем репозиторий к последнему коммиту перед запуском теста
         await resetRepositoryToHead();
 
@@ -302,7 +313,7 @@ export function runTestCommand(activeTestProvider: ActiveTestProvider) {
         await vscode.commands.executeCommand('workbench.action.closeAllEditors');
 
         const config = await readConfig();
-        const test = config.tests[testItem.index];
+        const test = config.tests[testIndex];
 
         const selectedTasks: SelectedTask[] = [];
 

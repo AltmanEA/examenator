@@ -58,7 +58,7 @@ class BlockTreeItem extends vscode.TreeItem {
         this.command = {
             command: 'examView.selectBlock',
             title: 'Выбрать блок',
-            arguments: [this]
+            arguments: [block.name]
         };
     }
 }
