@@ -1,7 +1,5 @@
 // Конфигурация сборки esbuild.
-// Расширение собирается в единый бандл dist/extension.js — это обязательно
-// для веб-версии (vscode.dev / github.dev): web extension host не умеет
-// резолвить require('./модуль') отдельных файлов расширения.
+// Расширение собирается в единый бандл dist/extension.js.
 import esbuild from 'esbuild';
 
 const production = process.argv.includes('--production');
@@ -24,7 +22,7 @@ const context = await esbuild.context({
 	bundle: true,
 	format: 'cjs',
 	target: 'es2022',
-	platform: 'neutral',
+	platform: 'node',
 	outfile: 'dist/extension.js',
 	external: ['vscode'],
 	minify: production,

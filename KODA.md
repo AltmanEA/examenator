@@ -13,7 +13,7 @@
 ### Технологии
 
 - **TypeScript** (strict mode, target ES2022, module Node16), компиляция тестов через `tsc`.
-- **Сборка**: esbuild — расширение бандлится в единый файл `dist/extension.js` (обязательно для веб-версии: web extension host не резолвит `require` отдельных файлов).
+- **Сборка**: esbuild — расширение бандлится в единый файл `dist/extension.js`.
 - **VS Code Extension API** (`@types/vscode` ^1.105.0, точки входа `main`/`browser`: `./dist/extension.js`).
 - **Тестирование**: `@vscode/test-cli` + `@vscode/test-electron` (Mocha-стиль `suite`/`test`), моки через **sinon**.
 - **Линтинг**: ESLint 9 (flat config, `eslint.config.mjs`).

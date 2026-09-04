@@ -4,6 +4,12 @@ All notable changes to the "examenator" extension will be documented in this fil
 
 Check [Keep a Changelog](http://keepachangelog.com/) for recommendations on how to structure this file.
 
+## [0.0.10] - 2026-09-04
+
+### Удалено
+
+- Поддержка веб-версии VS Code (vscode.dev / github.dev): удалено поле `browser` из манифеста, сборка переключена с `platform: 'neutral'` на `platform: 'node'`, убраны упоминания веб-версии из документации
+
 ## [0.0.9] - 2026-09-02
 
 ### Исправлено
