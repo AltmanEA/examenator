@@ -250,14 +250,14 @@ export function openTaskAndTestCommand() {
         } else {
             // Старый формат - открываем два файла
             let taskTemplate = '{task}.ts';
-            let testTemplate = '{task}.test.ts';
+            let testTemplateValue = '{task}.test.ts';
 
             // Используем старый формат как fallback
             if (template) {
                 taskTemplate = template;
             }
             if (testTemplate) {
-                testTemplate = testTemplate;
+                testTemplateValue = testTemplate;
             }
 
             // Генерируем имена файлов по шаблонам
@@ -265,7 +265,7 @@ export function openTaskAndTestCommand() {
                 .replace('{block}', block)
                 .replace(/{task}/g, taskId);
 
-            testFileName = testTemplate
+            testFileName = testTemplateValue
                 .replace('{block}', block)
                 .replace(/{task}/g, taskId);
 

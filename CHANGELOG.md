@@ -4,6 +4,12 @@ All notable changes to the "examenator" extension will be documented in this fil
 
 Check [Keep a Changelog](http://keepachangelog.com/) for recommendations on how to structure this file.
 
+## [0.0.11] - 2026-09-04
+
+### Исправлено
+
+- `openTaskAndTest`: шаблон `testTemplate` из `config.json` применялся некорректно — локальная переменная затеняла параметр функции, из-за чего тестовый файл искался с расширением `.ts` вместо указанного в конфиге `.js`
+
 ## [0.0.10] - 2026-09-04
 
 ### Удалено
