@@ -7,24 +7,6 @@ function isWeb(): boolean {
     return vscode.env.uiKind === vscode.UIKind.Web;
 }
 
-// Сброс репозитория к последнему коммиту через терминал (только десктоп)
-async function resetRepositoryToHead(): Promise<void> {
-    if (isWeb()) {
-        vscode.window.showWarningMessage('Сброс репозитория недоступен в веб-версии');
-        return;
-    }
-    try {
-        const terminal = vscode.window.createTerminal('Git Reset');
-        terminal.show();
-        terminal.sendText('git reset --hard HEAD');
-        terminal.sendText('echo "Репозиторий сброшен к последнему коммиту"');
-        await new Promise(resolve => setTimeout(resolve, 2000));
-        terminal.dispose();
-        vscode.window.showInformationMessage('Репозиторий сброшен к последнему коммиту');
-    } catch (error) {
-        vscode.window.showErrorMessage(`Ошибка при сбросе репозитория: ${error}`);
-    }
-}
 
 export class ActiveTestProvider implements vscode.TreeDataProvider<vscode.TreeItem> {
     private _onDidChangeTreeData = new vscode.EventEmitter<vscode.TreeItem | undefined>();
@@ -83,7 +65,7 @@ export class ActiveTestProvider implements vscode.TreeDataProvider<vscode.TreeIt
                 this.stopTimer();
                 vscode.window.showWarningMessage('Время вышло!');
             }
-        }, 250);
+        }, 1000);
     }
 
     private stopTimer(): void {
@@ -180,13 +162,7 @@ export function openTaskAndTestCommand() {
             test?: string;
         }
     ) => {
-        // Закрываем все открытые редакторы перед открытием новых
-        await vscode.commands.executeCommand('workbench.action.closeAllEditors');
-        // В веб-версии терминалы недоступны
-        if (!isWeb()) {
-            vscode.window.terminals.forEach(terminal => terminal.dispose());
-        }
-        
+        // Ничего не закрываем: только открываем нужные файлы и терминал
         const workspaceFolder = vscode.workspace.workspaceFolders?.[0];
         if (!workspaceFolder) { return; }
         const config = await readConfig();
@@ -302,16 +278,7 @@ export function openTaskAndTestCommand() {
 
 export function runTestCommand(activeTestProvider: ActiveTestProvider) {
     return vscode.commands.registerCommand('examView.runTest', async (testIndex: number) => {
-        // Сбрасываем репозиторий к последнему коммиту перед запуском теста
-        await resetRepositoryToHead();
-
-        // В веб-версии терминалы недоступны
-        if (!isWeb()) {
-            vscode.window.terminals.forEach(terminal => terminal.dispose());
-        }
-
-        await vscode.commands.executeCommand('workbench.action.closeAllEditors');
-
+        // Только выбор задач и запуск таймера: без сброса git и закрытия окон/терминалов
         const config = await readConfig();
         const test = config.tests[testIndex];
 
