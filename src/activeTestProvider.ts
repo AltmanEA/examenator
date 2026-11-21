@@ -165,7 +165,14 @@ export function openTaskAndTestCommand() {
         // Ничего не закрываем: только открываем нужные файлы и терминал
         const workspaceFolder = vscode.workspace.workspaceFolders?.[0];
         if (!workspaceFolder) { return; }
-        const config = await readConfig();
+        let config;
+        try {
+            config = await readConfig(workspaceFolder);
+        } catch (error) {
+            const reason = error instanceof Error ? error.message : String(error);
+            vscode.window.showErrorMessage(`Не удалось открыть задачу и тест: ${reason}`);
+            return;
+        }
 
         // Функция для безопасного открытия файла
         async function tryOpenFile(
@@ -276,31 +283,108 @@ export function openTaskAndTestCommand() {
     });
 }
 
-export function runTestCommand(activeTestProvider: ActiveTestProvider) {
-    return vscode.commands.registerCommand('examView.runTest', async (testIndex: number) => {
-        // Только выбор задач и запуск таймера: без сброса git и закрытия окон/терминалов
-        const config = await readConfig();
-        const test = config.tests[testIndex];
+// Выбирает рабочую папку: при нескольких корнях показывает QuickPick,
+// при одном — возвращает его без вопросов
+async function pickWorkspaceFolder(): Promise<vscode.WorkspaceFolder | undefined> {
+    const folders = vscode.workspace.workspaceFolders;
+    if (!folders || folders.length === 0) {
+        return undefined;
+    }
+    if (folders.length === 1) {
+        return folders[0];
+    }
 
-        const selectedTasks: SelectedTask[] = [];
+    const picked = await vscode.window.showWorkspaceFolderPick({
+        placeHolder: 'Выберите рабочую папку с config.json'
+    });
+    return picked;
+}
 
-        for (const testBlock of test.blocks) {
-            const blockNames = testBlock.block.split(' ');
-            const totalTasksNeeded = testBlock.task;
+// Нормализует аргумент команды запуска теста.
+// При клике по строке дерева приходит индекс из TreeItem.command.arguments,
+// а при вызове из inline-кнопки (menu view/item/context без arguments)
+// VS Code передаёт сам элемент дерева — берём индекс из его поля index.
+function normalizeTestIndex(raw: unknown): number {
+    if (typeof raw === 'number') {
+        return raw;
+    }
+    if (raw && typeof raw === 'object' && typeof (raw as { index?: unknown }).index === 'number') {
+        return (raw as { index: number }).index;
+    }
+    return NaN; // будет отклонено валидацией ниже
+}
 
-            const allAvailableTasks: SelectedTask[] = [];
+// Обработчик команды вынесен из registerCommand для покрытия тестами
+export async function runTestHandler(activeTestProvider: ActiveTestProvider, rawTestIndex: unknown): Promise<void> {
+    // Только выбор задач и запуск таймера: без сброса git и закрытия окон/терминалов
+    let config;
+    try {
+        const folder = await pickWorkspaceFolder();
+        if (!folder) {
+            vscode.window.showErrorMessage(
+                'Не выбрано рабочее пространство: невозможно запустить тест'
+            );
+            return;
+        }
+        config = await readConfig(folder);
+    } catch (error) {
+        const reason = error instanceof Error ? error.message : String(error);
+        vscode.window.showErrorMessage(`Не удалось запустить тест: ${reason}`);
+        return;
+    }
 
-            for (const blockName of blockNames) {
-                const block = config.blocks.find(b => b.name === blockName);
-                if (block) {
-                    allAvailableTasks.push(...collectTasksFromBlock(block));
-                }
+    // Валидация индекса теста: команда может быть вызвана с некорректным
+    // или устаревшим аргументом (например, config.json изменился после
+    // отрисовки дерева)
+    const testIndex = normalizeTestIndex(rawTestIndex);
+    if (!Number.isInteger(testIndex) || testIndex < 0) {
+        vscode.window.showErrorMessage(
+            'Не удалось запустить тест: некорректный номер теста'
+        );
+        return;
+    }
+
+    if (testIndex >= config.tests.length) {
+        vscode.window.showErrorMessage(
+            `Не удалось запустить тест: тест №${testIndex + 1} не найден в config.json ` +
+            `(доступно тестов: ${config.tests.length}). Обновите список тестов.`
+        );
+        return;
+    }
+
+    const test = config.tests[testIndex];
+
+    if (!Array.isArray(test.blocks)) {
+        vscode.window.showErrorMessage(
+            'Не удалось запустить тест: у теста не заданы блоки (поле blocks в config.json)'
+        );
+        return;
+    }
+
+    const selectedTasks: SelectedTask[] = [];
+
+    for (const testBlock of test.blocks) {
+        const blockNames = testBlock.block.split(' ');
+        const totalTasksNeeded = testBlock.task;
+
+        const allAvailableTasks: SelectedTask[] = [];
+
+        for (const blockName of blockNames) {
+            const block = config.blocks.find(b => b.name === blockName);
+            if (block) {
+                allAvailableTasks.push(...collectTasksFromBlock(block));
             }
-
-            const selected = shuffle(allAvailableTasks).slice(0, Math.min(totalTasksNeeded, allAvailableTasks.length));
-            selectedTasks.push(...selected);
         }
 
-        activeTestProvider.setActiveTest(selectedTasks, test.time);
-    });
+        const selected = shuffle(allAvailableTasks).slice(0, Math.min(totalTasksNeeded, allAvailableTasks.length));
+        selectedTasks.push(...selected);
+    }
+
+    activeTestProvider.setActiveTest(selectedTasks, test.time);
+}
+
+export function runTestCommand(activeTestProvider: ActiveTestProvider) {
+    return vscode.commands.registerCommand('examView.runTest', (testIndex: unknown) =>
+        runTestHandler(activeTestProvider, testIndex)
+    );
 }

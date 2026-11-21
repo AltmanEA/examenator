@@ -1,6 +1,6 @@
 import * as vscode from 'vscode';
 import { ActiveTestProvider, openTaskAndTestCommand, runTestCommand } from './activeTestProvider';
-import { readConfig, Block } from './config';
+import { readConfig, clearConfigCache, Block } from './config';
 import { TasksProvider } from './taskProvider';
 import { TestsProvider } from './testProvider';
 import { collectTasksFromBlock } from './taskSelector';
@@ -29,20 +29,16 @@ export function activate(context: vscode.ExtensionContext) {
             new vscode.RelativePattern(workspaceFolder, 'config.json')
         );
         
-        watcher.onDidChange(() => {
+        // При любом изменении config.json сбрасываем кэш и обновляем деревья
+        const refreshAll = () => {
+            clearConfigCache();
             tasksProvider.refresh();
             testsProvider.refresh();
-        });
+        };
 
-        watcher.onDidCreate(() => {
-            tasksProvider.refresh();
-            testsProvider.refresh();
-        });
-
-        watcher.onDidDelete(() => {
-            tasksProvider.refresh();
-            testsProvider.refresh();
-        });
+        watcher.onDidChange(refreshAll);
+        watcher.onDidCreate(refreshAll);
+        watcher.onDidDelete(refreshAll);
 
         context.subscriptions.push(watcher);
     }
@@ -51,7 +47,14 @@ export function activate(context: vscode.ExtensionContext) {
         openTaskAndTestCommand(),
         runTestCommand(activeTestProvider),
         vscode.commands.registerCommand('examView.selectBlock', async (blockName: string) => {
-            const config = await readConfig();
+            let config;
+            try {
+                config = await readConfig();
+            } catch (error) {
+                const reason = error instanceof Error ? error.message : String(error);
+                vscode.window.showErrorMessage(`Не удалось выбрать блок: ${reason}`);
+                return;
+            }
             const configBlock = config.blocks.find((b: Block) => b.name === blockName);
             if (!configBlock) {
                 vscode.window.showErrorMessage('Блок не найден в конфигурации');

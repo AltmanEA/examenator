@@ -3,7 +3,7 @@
   "displayName": "Examenator",
   "description": "Расширение для управления заданиями и тестами",
   "repository": "https://github.com/AltmanEA/examenator",
-  "version": "0.0.12",
+  "version": "0.0.14",
   "publisher": "AltmanEA",
   "engines": {
     "vscode": "^1.105.0"
@@ -31,6 +31,12 @@
       }
     ],
     "menus": {
+      "commandPalette": [
+        {
+          "command": "examView.runTest",
+          "when": "false"
+        }
+      ],
       "view/title": [],
       "view/item/context": [
         {

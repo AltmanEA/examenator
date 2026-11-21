@@ -47,26 +47,61 @@ export type Config = {
 
 const CONFIG_FILE = 'config.json';
 
-export async function readConfig(): Promise<Config> {
-    const workspaceFolder = vscode.workspace.workspaceFolders?.[0];
+// Кэш последнего успешно прочитанной конфигурации.
+// Используется как fallback при временных ошибках чтения файла
+// (например, сетевая задержка ФС в SSH-контейнере).
+let configCache: Config | null = null;
+
+// Сбрасывает кэш (вызывается из FileSystemWatcher при изменении config.json)
+export function clearConfigCache(): void {
+    configCache = null;
+}
+
+export async function readConfig(folder?: vscode.WorkspaceFolder): Promise<Config> {
+    const workspaceFolder = folder ?? vscode.workspace.workspaceFolders?.[0];
     if (!workspaceFolder) {
-        return createDefaultConfig();
+        throw new Error('Не открыта рабочая папка: невозможно прочитать config.json');
     }
 
     const configUri = vscode.Uri.joinPath(workspaceFolder.uri, CONFIG_FILE);
 
+    let data: Uint8Array;
     try {
-        const data = await vscode.workspace.fs.readFile(configUri);
-        let json: { blocks?: Block[]; tests?: Tests[]; path?: string };
-        try {
-            json = JSON.parse(new TextDecoder('utf-8').decode(data));
-        } catch (parseError) {
-            vscode.window.showErrorMessage(
-                'Ошибка при разборе config.json: невалидный JSON. Проверьте синтаксис файла в корне рабочей области.'
-            );
-            return createDefaultConfig();
+        data = await vscode.workspace.fs.readFile(configUri);
+    } catch (error) {
+        // Временная ошибка чтения (файл недоступен, сетевой сбой) —
+        // используем кэш, если он есть; иначе пробрасываем реальную причину
+        if (configCache) {
+            return configCache;
         }
-        return { blocks: json.blocks || [], tests: json.tests || [], path: json.path || 'src' };
+        const reason = error instanceof Error ? error.message : String(error);
+        throw new Error(`Не удалось прочитать config.json (${configUri.fsPath}): ${reason}`);
+    }
+
+    let json: { blocks?: Block[]; tests?: Tests[]; path?: string };
+    try {
+        json = JSON.parse(new TextDecoder('utf-8').decode(data));
+    } catch (parseError) {
+        // Невалидный JSON — ошибка конфигурации, кэш не применяем
+        const reason = parseError instanceof Error ? parseError.message : String(parseError);
+        throw new Error(
+            `Ошибка при разборе config.json: невалидный JSON (${configUri.fsPath}): ${reason}`
+        );
+    }
+
+    const config: Config = {
+        blocks: json.blocks || [],
+        tests: json.tests || [],
+        path: json.path || 'src'
+    };
+    configCache = config;
+    return config;
+}
+
+// Старое поведение: при любой ошибке возвращает пустую конфигурацию по умолчанию
+export async function readConfigOrDefault(): Promise<Config> {
+    try {
+        return await readConfig();
     } catch {
         return createDefaultConfig();
     }

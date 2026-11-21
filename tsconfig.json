@@ -14,5 +14,13 @@
 		// "noImplicitReturns": true, /* Report error when not all code paths in function return a value. */
 		// "noFallthroughCasesInSwitch": true, /* Report errors for fallthrough cases in switch statement. */
 		// "noUnusedParameters": true,  /* Report errors on unused parameters. */
-	}
+	},
+	// typescript26lab — учебный рабочий пример с намеренно незавершёнными
+	// файлами задач, не должен компилироваться вместе с расширением
+	"exclude": [
+		"node_modules",
+		"out",
+		"dist",
+		"typescript26lab"
+	]
 }
