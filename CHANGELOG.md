@@ -4,6 +4,12 @@ All notable changes to the "examenator" extension will be documented in this fil
 
 Check [Keep a Changelog](http://keepachangelog.com/) for recommendations on how to structure this file.
 
+## [0.0.15] - 2026-11-21
+
+### Добавлено
+
+- Команда «Сбросить всё» (`examView.resetWorkspace`) — кнопка в заголовках view «Задачи» и «Тесты» (только в git-репозитории). Выполняет: `git restore .` (откат unstaged-изменений с сохранением staged), `git clean -fd` (удаление неотслеживаемых файлов), закрытие всех редакторов и всех терминалов. Кнопка скрыта вне git-репозитория через контекстную переменную `examView:isGitRepo`.
+
 ## [0.0.14] - 2026-10-15
 
 ### Исправлено

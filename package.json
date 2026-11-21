@@ -3,7 +3,7 @@
   "displayName": "Examenator",
   "description": "Расширение для управления заданиями и тестами",
   "repository": "https://github.com/AltmanEA/examenator",
-  "version": "0.0.14",
+  "version": "0.0.15",
   "publisher": "AltmanEA",
   "engines": {
     "vscode": "^1.105.0"
@@ -28,6 +28,11 @@
       {
         "command": "examView.selectBlock",
         "title": "Выбрать блок задач"
+      },
+      {
+        "command": "examView.resetWorkspace",
+        "title": "Сбросить всё",
+        "icon": "$(discard)"
       }
     ],
     "menus": {
@@ -37,7 +42,18 @@
           "when": "false"
         }
       ],
-      "view/title": [],
+      "view/title": [
+        {
+          "command": "examView.resetWorkspace",
+          "when": "view == tasksView && examView:isGitRepo",
+          "group": "navigation"
+        },
+        {
+          "command": "examView.resetWorkspace",
+          "when": "view == testsView && examView:isGitRepo",
+          "group": "navigation"
+        }
+      ],
       "view/item/context": [
         {
           "command": "examView.runTest",
